@@ -1,23 +1,23 @@
-import mongoose, { Schema, Document } from 'mongoose';
+// models/Furnace.ts
+import { Schema, model, Document } from 'mongoose';
 
 export interface IFurnace extends Document {
   furnaceNo: string;
-  name: string;
-  description?: string;
-  isActive: boolean;
+  furnaceDescription: string;
+  isDisplay: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const FurnaceSchema: Schema = new Schema(
+const furnaceSchema = new Schema<IFurnace>(
   {
-    furnaceNo: { type: String, required: true },
-    name: { type: String, required: true },
-    description: { type: String },
-    isActive: { type: Boolean, default: true },
+    furnaceNo: { type: String, required: true, unique: true },
+    furnaceDescription: { type: String, required: true },
+    isDisplay: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  {
+    timestamps: true, 
+  }
 );
 
-const Furnace = mongoose.model<IFurnace>('Furnace', FurnaceSchema);
-export default Furnace;
+export default model<IFurnace>('Furnace', furnaceSchema);
