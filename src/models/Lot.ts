@@ -13,6 +13,20 @@ export interface ILot extends Document {
   updatedAt: Date;
 }
 
+// Data interface สำหรับการสร้าง document
+export interface LotData {
+  lotNo: string;
+  furnaceId: Types.ObjectId[];
+  specifications: {
+    upperSpecLimit: number;
+    lowerSpecLimit: number;
+    target: number;
+  };
+  isDisplay?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 const lotSchema = new Schema<ILot>(
   {
     lotNo: { type: String, required: true },
