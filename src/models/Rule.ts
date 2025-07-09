@@ -1,4 +1,5 @@
 import { Schema, model, Document } from 'mongoose';
+import { number } from 'zod';
 
 export const DisplayType = {
   Furnace: 'Furnace',
@@ -49,24 +50,24 @@ export interface SettingData {
 
 const settingSchema = new Schema<ISetting>(
   {
-    settingProfileName: { type: String, required: true },
+    settingProfileName: { type: String },
     displayType: {
       type: String,
       enum: Object.values(DisplayType),
       required: true,
     },
     generalSetting: {
-      refreshInterval: { type: Number, required: true },
-      chartChangeInterval: { type: Number, required: true },
+      refreshInterval: { type: Number},
+      chartChangeInterval: { type: number},
       period: {
-        startDate: { type: Date, required: true },
-        endDate: { type: Date, required: true },
+        startDate: { type: Date },
+        endDate: { type: Date},
       },
     },
     specificSetting: [
       {
-        furnaceNo: { type: Number, required: true },
-        lotNo: { type: String, required: true },
+        furnaceNo: { type: Number },
+        lotNo: { type: String},
       },
     ],
   },

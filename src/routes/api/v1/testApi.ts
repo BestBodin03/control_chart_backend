@@ -1,6 +1,5 @@
 import express from "express";
 import { Router } from "express";
-import getExampleFurnace from "../../../controllers/furnace.controller";
 
 // import mssql from "../../function/mssql";
 // import { mssqlquery } from "../../function/mssql";

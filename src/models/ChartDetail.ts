@@ -1,7 +1,7 @@
 import { Schema, model, Document } from 'mongoose';
 
 export interface IChartDetail extends Document {
-  lotNo: string;
+  CPNo: string;
   FGNo: string;
   chartGeneralDetail: {
     furnaceNo: number;
@@ -24,7 +24,7 @@ export interface IChartDetail extends Document {
 
 // Data interface สำหรับการสร้าง document
 export interface ChartDetailData {
-  lotNo: string;
+  CPNo: string;
   FGNo: string;
   chartGeneralDetail: {
     furnaceNo: number;
@@ -46,23 +46,23 @@ export interface ChartDetailData {
 }
 
 const chartDetailSchema = new Schema<IChartDetail>({
-  lotNo: { type: String, required: true },
-  FGNo: { type: String, required: true },
+  CPNo: { type: String},
+  FGNo: { type: String},
   chartGeneralDetail: {
-    furnaceNo: { type: Number, required: true },
-    part: { type: String, required: true },
-    partName: { type: String, required: true },
-    collectedDate: { type: Date, required: true}
+    furnaceNo: { type: Number},
+    part: { type: String},
+    partName: { type: String},
+    collectedDate: { type: Date}
   },
   machanicDetail: {
-    surfaceHardnessMean: { type: Number, required: true },
-    hardnessAt01mmMean: { type: Number, required: true },
+    surfaceHardnessMean: { type: Number},
+    hardnessAt01mmMean: { type: Number},
     CDE: {
-      CDEX: { type: Number, required: true },
-      CDEY: { type: Number, required: true },
+      CDEX: { type: Number},
+      CDEY: { type: Number},
     },
-    coreHardnessMean: { type: Number, required: true },
-    compoundLayer: { type: Number, required: true },
+    coreHardnessMean: { type: Number},
+    compoundLayer: { type: Number},
   },
   updatedAt: { type: Date, default: Date.now },
 });

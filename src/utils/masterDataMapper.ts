@@ -1,6 +1,6 @@
 import { ChartDetailData, IChartDetail } from "../models/ChartDetail";
 import { FurnaceData, IFurnace } from "../models/Furnace";
-import { ILot, LotData } from "../models/Lot";
+import { ICP, CPData } from "../models/CustomerProduct";
 
 import { Schema, Document, model, Types } from 'mongoose';
 import { FGDataEncoding } from "./masterDataFGEncoding";
@@ -29,25 +29,23 @@ export interface IMasterData extends Document {
 export interface ParsedCollections {
     furnaceData: IFurnace;
     chartDetailData: IChartDetail;
-    lotData: ILot;
+    cpData: ICP;
 }
 
 export class DataParser {
-    // Parse raw API data to Furnace format
     static parseToFurnace(rawData: IMasterData, fgEncoded: FGDataEncoding): FurnaceData {
         return {
             furnaceNo: fgEncoded.masterFurnaceNo,
-            furnaceDescription: '', // หรือดึงจาก rawData ถ้ามี
+            furnaceDescription: '',
             isDisplay: true,
             updatedAt: new Date(),
             createdAt: new Date()
         };
     }
 
-    // Parse to Lot
-    static parseToLot(rawData: IMasterData, furnaceIds: Types.ObjectId[] = []): LotData {
+    static parseToLot(rawData: IMasterData, furnaceIds: Types.ObjectId[] = []): CPData {
         return {
-            lotNo: rawData.masterLotNo,
+            CPNo: rawData.masterLotNo,
             furnaceId: furnaceIds,
             specifications: {
                 upperSpecLimit: 100,
@@ -58,10 +56,9 @@ export class DataParser {
         };
     }
 
-    // Parse to ChartDetail
     static parseToChartDetail(rawData: IMasterData, fgEncoded: FGDataEncoding): ChartDetailData {
         return {
-            lotNo: rawData.masterLotNo,
+            CPNo: rawData.masterLotNo,
             FGNo: fgEncoded.masterFGcode,
             chartGeneralDetail: {
                 furnaceNo: fgEncoded.masterFurnaceNo,
@@ -82,12 +79,12 @@ export class DataParser {
         };
     }
 
-        // Parse all collections at once
-        static parseAllCollections(rawData: IMasterData, fgEncoded: FGDataEncoding, furnaceIds: Types.ObjectId[] = []): ParseMasterData {
-            return {
-                furnaceData: this.parseToFurnace(rawData, fgEncoded),
-                lotData: this.parseToLot(rawData, furnaceIds),
-                chartDetailData: this.parseToChartDetail(rawData, fgEncoded)
-            };
-        }
+    static parseAllCollections(rawData: IMasterData, fgEncoded: FGDataEncoding, furnaceIds: Types.ObjectId[] = []): ParseMasterData {
+        return {
+            furnaceData: this.parseToFurnace(rawData, fgEncoded),
+            cpData: this.parseToLot(rawData, furnaceIds),
+            chartDetailData: this.parseToChartDetail(rawData, fgEncoded)
+        };
     }
+
+}

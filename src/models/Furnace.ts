@@ -8,7 +8,6 @@ export interface IFurnace extends Document {
   updatedAt: Date;
 }
 
-// เพิ่ม interface สำหรับ data ที่จะส่งไปสร้าง document
 export interface FurnaceData {
   furnaceNo: number;
   furnaceDescription: string;
@@ -19,8 +18,8 @@ export interface FurnaceData {
 
 const furnaceSchema = new Schema<IFurnace>(
   {
-    furnaceNo: { type: Number, required: true },
-    furnaceDescription: { type: String, required: true },
+    furnaceNo: { type: Number },
+    furnaceDescription: { type: String },
     isDisplay: { type: Boolean, default: true },
   },
   {

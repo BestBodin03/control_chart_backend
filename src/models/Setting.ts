@@ -29,24 +29,24 @@ export interface ISetting extends Document {
 
 const settingSchema = new Schema<ISetting>(
   {
-    settingProfileName: { type: String, required: true },
+    settingProfileName: { type: String},
     displayType: {
       type: String,
       enum: Object.values(DisplayType),
       required: true,
     },
     generalSetting: {
-      refreshInterval: { type: Number, required: true },
-      chartChangeInterval: { type: Number, required: true },
+      refreshInterval: { type: Number},
+      chartChangeInterval: { type: Number},
       period: {
-        startDate: { type: Date, required: true },
-        endDate: { type: Date, required: true },
+        startDate: { type: Date},
+        endDate: { type: Date},
       },
     },
     specificSetting: [
       {
-        furnaceNo: { type: Number, required: true },
-        lotNo: { type: String, required: true },
+        furnaceNo: { type: Number},
+        lotNo: { type: String },
       },
     ],
   },

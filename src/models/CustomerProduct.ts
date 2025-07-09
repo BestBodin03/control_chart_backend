@@ -1,7 +1,7 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-export interface ILot extends Document {
-  lotNo: string;
+export interface ICP extends Document {
+  CPNo: string;
   furnaceId: Types.ObjectId[];
   specifications: {
     upperSpecLimit: number;
@@ -13,9 +13,8 @@ export interface ILot extends Document {
   updatedAt: Date;
 }
 
-// Data interface สำหรับการสร้าง document
-export interface LotData {
-  lotNo: string;
+export interface CPData {
+  CPNo: string;
   furnaceId: Types.ObjectId[];
   specifications: {
     upperSpecLimit: number;
@@ -27,9 +26,9 @@ export interface LotData {
   updatedAt?: Date;
 }
 
-const lotSchema = new Schema<ILot>(
+const CPSchema = new Schema<ICP>(
   {
-    lotNo: { type: String, required: true },
+    CPNo: { type: String},
     furnaceId: [{ type: Schema.Types.ObjectId, ref: 'Furnace', required: true }],
     specifications: {
       upperSpecLimit: Number,
@@ -41,4 +40,4 @@ const lotSchema = new Schema<ILot>(
   { timestamps: true }
 );
 
-export default model<ILot>('Lot', lotSchema);
+export default model<ICP>('CustomerProduct', CPSchema);

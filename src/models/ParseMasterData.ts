@@ -1,9 +1,9 @@
 import { ChartDetailData } from "./ChartDetail";
 import { FurnaceData } from "./Furnace";
-import { LotData } from "./Lot";
+import { CPData } from "./CustomerProduct";
 
 export interface ParseMasterData {
   furnaceData: FurnaceData;
-  lotData: LotData;
+  cpData: CPData;
   chartDetailData: ChartDetailData;
 }
