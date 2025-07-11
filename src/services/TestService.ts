@@ -5,12 +5,12 @@ import mongoose, { Schema, model, Document, Model } from 'mongoose';
 // ✅ Types and Interfaces
 interface APIResponse {
   lot_number: string;
-  furnace_number: string;
+  furnace_number: number;
   furnace_description: string;
   fg_code: string;
   part_number: string;
   part_name: string;
-  collected_date: string;
+  collected_date: Date;
   surface_hardness: number;
   hardness_01mm: number;
   cde_x: number;
@@ -107,11 +107,11 @@ interface ChartDetailData {
 export interface FGDataEncoding {
   masterCollectedDate: Date;
   masterFurnaceNo: number;
-  masterFGcode: string; // code ที่ได้จาก API
+  masterFGcode: string;
 }
 
-// ✅ Furnace Code Encoder
 export class FurnaceCodeEncoder {
+  
   private static encodeMonth(month: number): string {
     const monthMap: Record<number, string> = {
       1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6',
@@ -120,42 +120,146 @@ export class FurnaceCodeEncoder {
     return monthMap[month] || '1';
   }
   
+  // Decode month from encoded format (reverse of encodeMonth)
+  private static decodeMonth(encodedMonth: string): number {
+    const reverseMonthMap: Record<string, number> = {
+      '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
+      '7': 7, '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12
+    };
+    return reverseMonthMap[encodedMonth] || 1;
+  }
+
   private static encodeFurnaceNumber(furnaceNo: number): string {
     if (furnaceNo >= 1 && furnaceNo <= 9) {
       return furnaceNo.toString();
     } else if (furnaceNo >= 10 && furnaceNo <= 35) {
-      return String.fromCharCode(65 + (furnaceNo - 10)); // A=10, B=11, ..., Z=35
+      let realFurnaceNo = String.fromCharCode(65 + (furnaceNo - 10));
+      return realFurnaceNo; // A=10, B=11, ..., Z=35
     }
     return '1';
   }
-  
-  // รับ code จาก IMasterData.masterFG_CHARG.masterFG_CHARGCode
-  static encode(masterFurnaceNo: string | number, masterCollectedDate: string | Date, code: string): FGDataEncoding {
-    const furnaceNo = typeof masterFurnaceNo === 'string' 
-      ? parseInt(masterFurnaceNo, 10) 
-      : masterFurnaceNo;
+
+  // Extract date from FG_CODE format: G<YY><M><DD>B<FurnaceNo>XX
+  private static extractDateFromFGCode(fgCode: string): Date {
+    try {
+      console.log('Extracting date from FG_CODE:', fgCode);
+      
+      // Pattern: G<YY><M><DD>B<FurnaceNo>XX
+      const match = fgCode.match(/^G([0-9A-C]{5})B/);
+      
+      if (!match) {
+        console.warn('Invalid FG_CODE format:', fgCode);
+        return new Date();
+      }
+      
+      const dateStr = match[1]; // Extract YYMDD (5 characters)
+      
+      const yy = parseInt(dateStr.substring(0, 2), 10); // First 2 digits (year)
+      const encodedMonth = dateStr.substring(2, 3);     // 3rd character (encoded month)
+      const dd = parseInt(dateStr.substring(3, 5), 10); // Last 2 digits (day)
+      
+      // Decode the month using the reverse mapping
+      const m = this.decodeMonth(encodedMonth);
+      
+      // Handle 2-digit year (assume 20xx)
+      const fullYear = 2000 + yy;
+      
+      // Get current time components
+      const now = new Date();
+      const hours = now.getUTCHours();
+      const minutes = now.getUTCMinutes();
+      const seconds = now.getUTCSeconds();
+      const milliseconds = now.getUTCMilliseconds();
+      
+      // Create date using UTC with current time
+      const extractedDate = new Date(Date.UTC(fullYear, m - 1, dd, hours, minutes, seconds, milliseconds));
+      
+      console.log('Date extraction result:', { 
+        fgCode, 
+        yy, 
+        encodedMonth, 
+        decodedMonth: m, 
+        dd, 
+        fullYear,
+        result: extractedDate.toISOString() 
+      });
+      
+      return extractedDate;
+      
+    } catch (error) {
+      console.error('Error extracting date from FG_CODE:', error, fgCode);
+      return new Date();
+    }
+  }
+
+  // Extract furnace number from FG_CODE (ตำแหน่งที่ 8)
+  private static extractFurnaceFromFGCode(fgCode: string): number {
+    try {
+      console.log('Extracting furnace from FG_CODE:', fgCode);
+      
+      // Pattern: G<YYMDD>B<FurnaceNo>XX - ตำแหน่งที่ 8 คือ FurnaceNo
+      // ตัวอย่าง: G25521B1XX -> position 8 = '1'
+      if (fgCode.length < 8) {
+        console.warn('FG_CODE too short:', fgCode);
+        return 1;
+      }
+      
+      const furnaceChar = fgCode.charAt(7); // Position 8 (0-indexed = 7)
+      console.log('Furnace character at position 8:', furnaceChar);
+      
+      // If it's a number (1-9)
+      if (/^\d$/.test(furnaceChar)) {
+        const furnaceNo = parseInt(furnaceChar, 10);
+        console.log('Decoded furnace number:', furnaceNo);
+        return furnaceNo;
+      }
+      
+      // If it's a letter (A=10, B=11, etc.)
+      if (/^[A-Z]$/.test(furnaceChar)) {
+        const furnaceNo = furnaceChar.charCodeAt(0) - 65 + 10;
+        console.log('Decoded furnace number from letter:', furnaceNo);
+        return furnaceNo;
+      }
+      
+      console.warn('Invalid furnace character:', furnaceChar);
+      return 1; // Default
+    } catch (error) {
+      console.error('Error extracting furnace from FG_CODE:', error);
+      return 1;
+    }
+  }
+
+  // Original encode method - extracts both date and furnace from FG_CODE
+  static encode(masterFurnaceNo: string | number, masterCollectedDate: Date, code: string): FGDataEncoding {
     
-    const date = typeof masterCollectedDate === 'string' 
-      ? new Date(masterCollectedDate) 
-      : masterCollectedDate;
+    // Extract date and furnace number from FG_CODE
+    const extractedDate = this.extractDateFromFGCode(code);
+    const extractedFurnaceNo = this.extractFurnaceFromFGCode(code);
     
+    console.log('FG_CODE Processing Results:', {
+      originalCode: code,
+      extractedDate: extractedDate.toISOString(),
+      extractedFurnaceNo,
+      inputFurnaceNo: masterFurnaceNo
+    });
+
     return {
-      masterCollectedDate: date,
-      masterFurnaceNo: furnaceNo,
-      masterFGcode: code // ใช้ code ที่ส่งเข้ามาจาก API
+      masterCollectedDate: extractedDate, // Use date extracted from FG_CODE
+      masterFurnaceNo: extractedFurnaceNo, // Use furnace number extracted from FG_CODE
+      masterFGcode: code // The original FG_CODE
     };
   }
 }
 
 // ✅ MODELS
 const furnaceSchema = new Schema<IFurnace>({
-  furnaceNo: { type: Number},
+  furnaceNo: { type: Number, unique: true }, // เพิ่ม unique constraint
   furnaceDescription: { type: String},
   isDisplay: { type: Boolean, default: true },
 }, { timestamps: true });
 
 const cpSchema = new Schema<ICP>({
-  CPNo: { type: String },
+  CPNo: { type: String, unique: true }, // เพิ่ม unique constraint
   furnaceId: [{ type: Schema.Types.ObjectId, ref: 'Furnace' }],
   specifications: {
     upperSpecLimit: { type: Number},
@@ -193,9 +297,22 @@ const ChartDetailModel = mongoose.models.ChartDetail || model<IChartDetail>('Cha
 
 // ✅ REPOSITORIES
 class FurnaceRepository {
-  async create(furnaceData: FurnaceData): Promise<IFurnace> {
-    const furnace = new FurnaceModel(furnaceData);
-    return await furnace.save();
+  async bulkCreate(furnaceData: FurnaceData[]): Promise<IFurnace[]> {
+    try {
+      return await FurnaceModel.insertMany(furnaceData, { ordered: false });
+    } catch (error: any) {
+      // Handle duplicate key errors but continue with unique records
+      if (error.code === 11000) {
+        console.log('Some furnaces already exist, continuing...');
+        return error.insertedDocs || [];
+      }
+      throw error;
+    }
+  }
+
+  async findExistingFurnaceNos(furnaceNos: number[]): Promise<number[]> {
+    const existing = await FurnaceModel.find({ furnaceNo: { $in: furnaceNos } }, 'furnaceNo').exec();
+    return existing.map(f => f.furnaceNo);
   }
 
   async findByFurnaceNo(furnaceNo: number): Promise<IFurnace | null> {
@@ -208,9 +325,22 @@ class FurnaceRepository {
 }
 
 class CustomerProductRepository {
-  async create(cpData: CPData): Promise<ICP> {
-    const cp = new CPModel(cpData);
-    return await cp.save();
+  async bulkCreate(cpData: CPData[]): Promise<ICP[]> {
+    try {
+      return await CPModel.insertMany(cpData, { ordered: false });
+    } catch (error: any) {
+      // Handle duplicate key errors but continue with unique records
+      if (error.code === 11000) {
+        console.log('Some customer products already exist, continuing...');
+        return error.insertedDocs || [];
+      }
+      throw error;
+    }
+  }
+
+  async findExistingCPNos(cpNos: string[]): Promise<string[]> {
+    const existing = await CPModel.find({ CPNo: { $in: cpNos } }, 'CPNo').exec();
+    return existing.map(cp => cp.CPNo);
   }
 
   async findByCPNo(cpNo: string): Promise<ICP | null> {
@@ -223,9 +353,8 @@ class CustomerProductRepository {
 }
 
 class ChartDetailRepository {
-  async create(chartDetailData: ChartDetailData): Promise<IChartDetail> {
-    const chartDetail = new ChartDetailModel(chartDetailData);
-    return await chartDetail.save();
+  async bulkCreate(chartDetailData: ChartDetailData[]): Promise<IChartDetail[]> {
+    return await ChartDetailModel.insertMany(chartDetailData);
   }
 
   async findByCPNo(cpNo: string): Promise<IChartDetail[]> {
@@ -241,32 +370,60 @@ class ChartDetailRepository {
 class FurnaceService {
   constructor(private furnaceRepository: FurnaceRepository) {}
 
-  async createFurnace(furnaceData: FurnaceData): Promise<IFurnace> {
-    const existingFurnace = await this.furnaceRepository.findByFurnaceNo(furnaceData.furnaceNo);
-    if (existingFurnace) {
-      return existingFurnace;
+  async bulkCreateUniqueFurnaces(furnaceDataArray: FurnaceData[]): Promise<IFurnace[]> {
+    // Extract unique furnace numbers
+    const uniqueFurnaceNos = [...new Set(furnaceDataArray.map(f => f.furnaceNo))];
+    console.log(`Unique furnace numbers to process: ${uniqueFurnaceNos.length}`);
+    
+    // Check existing furnaces
+    const existingFurnaceNos = await this.furnaceRepository.findExistingFurnaceNos(uniqueFurnaceNos);
+    const existingSet = new Set(existingFurnaceNos);
+    
+    // Filter new furnaces only
+    const newFurnaceData = furnaceDataArray.filter(f => !existingSet.has(f.furnaceNo));
+    const uniqueNewFurnaceData = newFurnaceData.filter((f, index, arr) => 
+      arr.findIndex(item => item.furnaceNo === f.furnaceNo) === index
+    );
+    
+    console.log(`New furnaces to insert: ${uniqueNewFurnaceData.length}`);
+    
+    if (uniqueNewFurnaceData.length > 0) {
+      return await this.furnaceRepository.bulkCreate(uniqueNewFurnaceData);
     }
-    return await this.furnaceRepository.create(furnaceData);
+    
+    return [];
   }
 
   async getAllFurnaces(): Promise<IFurnace[]> {
     return await this.furnaceRepository.findAll();
-  }
-
-  async getFurnaceByFurnaceNo(furnaceNo: number): Promise<IFurnace | null> {
-    return await this.furnaceRepository.findByFurnaceNo(furnaceNo);
   }
 }
 
 class CustomerProductService {
   constructor(private cpRepository: CustomerProductRepository) {}
 
-  async createCustomerProduct(cpData: CPData): Promise<ICP> {
-    return await this.cpRepository.create(cpData);
-  }
-
-  async getCustomerProductByCPNo(cpNo: string): Promise<ICP | null> {
-    return await this.cpRepository.findByCPNo(cpNo);
+  async bulkCreateUniqueCustomerProducts(cpDataArray: CPData[]): Promise<ICP[]> {
+    // Extract unique CP numbers
+    const uniqueCPNos = [...new Set(cpDataArray.map(cp => cp.CPNo))];
+    console.log(`Unique CP numbers to process: ${uniqueCPNos.length}`);
+    
+    // Check existing customer products
+    const existingCPNos = await this.cpRepository.findExistingCPNos(uniqueCPNos);
+    const existingSet = new Set(existingCPNos);
+    
+    // Filter new customer products only
+    const newCPData = cpDataArray.filter(cp => !existingSet.has(cp.CPNo));
+    const uniqueNewCPData = newCPData.filter((cp, index, arr) => 
+      arr.findIndex(item => item.CPNo === cp.CPNo) === index
+    );
+    
+    console.log(`New customer products to insert: ${uniqueNewCPData.length}`);
+    
+    if (uniqueNewCPData.length > 0) {
+      return await this.cpRepository.bulkCreate(uniqueNewCPData);
+    }
+    
+    return [];
   }
 
   async getAllCustomerProducts(): Promise<ICP[]> {
@@ -277,12 +434,9 @@ class CustomerProductService {
 class ChartDetailService {
   constructor(private chartDetailRepository: ChartDetailRepository) {}
 
-  async createChartDetail(chartDetailData: ChartDetailData): Promise<IChartDetail> {
-    return await this.chartDetailRepository.create(chartDetailData);
-  }
-
-  async getChartDetailsByCPNo(cpNo: string): Promise<IChartDetail[]> {
-    return await this.chartDetailRepository.findByCPNo(cpNo);
+  async bulkCreateChartDetails(chartDetailDataArray: ChartDetailData[]): Promise<IChartDetail[]> {
+    console.log(`Chart details to insert: ${chartDetailDataArray.length}`);
+    return await this.chartDetailRepository.bulkCreate(chartDetailDataArray);
   }
 
   async getAllChartDetails(): Promise<IChartDetail[]> {
@@ -314,7 +468,7 @@ class MasterDataProcessor {
       const mappedData = this.mapAPIDataToCollections(apiData);
       console.log(`✅ Mapped ${mappedData.length} records`);
 
-      // 3. Bulk POST to 3 collections
+      // 3. Bulk POST to 3 collections with unique constraints
       const results = await this.bulkCreateCollections(mappedData);
       console.log('✅ Bulk creation completed');
 
@@ -324,7 +478,8 @@ class MasterDataProcessor {
       throw new Error(`Process failed: ${error}`);
     }
   }
-    // ✅ Helper function for safe nested access
+
+  // ✅ Helper function for safe nested access
   private getNestedValue(obj: any, keys: string[]): number {
     try {
       let value = obj;
@@ -335,41 +490,50 @@ class MasterDataProcessor {
     } catch (error) {
       return 0;
     }
-}
+  }
 
   // ✅ GET data from API และแปลงเป็น APIResponse
   private async fetchDataFromAPI(): Promise<APIResponse[]> {
     try {
       const response = await fetch('http://localhost:14000/master-data');
+      
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
       
       const rawData: any = await response.json();
-      console.log('Raw JSON from API:', rawData[0]);
-
-      // ✅ แปลง JSON fields → APIResponse interface
-      const mappedData: APIResponse[] = rawData.map((record: any) => ({
-        lot_number: record.LOTNO,                                    // JSON: LOTNO → Interface: lot_number
-        furnace_number: record.masterFurnaceNo,                          // JSON: FURNACE_NUM → Interface: furnace_number
-        furnace_description: record.DESC || record.DESCRIPTION || '',      // JSON: DESC → Interface: furnace_description
-        fg_code: record.FG_CHARG,                                     // JSON: FG_CODE → Interface: fg_code
-        part_number: record.PART,                                 // JSON: PART_NO → Interface: part_number
-        part_name: record.PARTNAME,                                 // JSON: PART_NAME → Interface: part_name
-        collected_date:  Date.now(),                       // JSON: COLLECTED_DATE → Interface: collected_date
-        surface_hardness: this.getNestedValue(record, ["Ha@ 0", "1 min", " (MEAN)"]),// JSON: nested object → Interface: surface_hardness
-        hardness_01mm: record["Surface Hardness(ALL-MEAN)"]|| 0,                   // JSON: HARDNESS_01MM → Interface: hardness_01mm
-        cde_x: record["Hardness Case Depth (CDE@ 513 Hmv)(X)"] || 0,                                    // JSON: CDE_X → Interface: cde_x
-        cde_y: record["Hardness Case Depth (CDE@ 513 Hmv)(Y)"] || 0,                                    // JSON: CDE_Y → Interface: cde_y
-        core_hardness: record["Core Hardness(ALL-MEAN)"] || 0,                   // JSON: CORE_HARDNESS → Interface: core_hardness
-        compound_layer: record["Compound Layer-P1"]|| 0,                 // JSON: COMPOUND_LAYER → Interface: compound_layer
-        upper_spec: record.UPPER_SPEC || 100,                       // JSON: UPPER_SPEC → Interface: upper_spec
-        lower_spec: record.LOWER_SPEC || 0,                         // JSON: LOWER_SPEC → Interface: lower_spec
-        target_spec: record.TARGET_SPEC || 50,                      // JSON: TARGET_SPEC → Interface: target_spec
-        is_active: record.IS_ACTIVE || true                         // JSON: IS_ACTIVE → Interface: is_active
-      }));
+      console.log('Raw JSON from API (first record):', rawData[0]);
       
-      console.log('Mapped to APIResponse:', mappedData[0]);
+      // Map data with FG_CODE encoding for both furnace and date
+      const mappedData: APIResponse[] = rawData.map((record: any) => {
+        // Extract FG_CODE and encode it
+        const fgCode = record.FG_CHARG || '';
+        const fgEncoded = FurnaceCodeEncoder.encode(1, new Date(), fgCode);
+        
+        return {
+          lot_number: record.LotNo || '',
+          furnace_number: fgEncoded.masterFurnaceNo, // Use furnace from FG_CODE
+          furnace_description: record.DESC || record.DESCRIPTION || `Furnace ${fgEncoded.masterFurnaceNo}`,
+          fg_code: fgCode,
+          part_number: record.PART || '',
+          part_name: record.PARTNAME || '',
+          collected_date: fgEncoded.masterCollectedDate, // Use date from FG_CODE
+          surface_hardness: this.getNestedValue(record, ["Ha@ 0", "1 min", " (MEAN)"]),
+          hardness_01mm: record["Surface Hardness(ALL-MEAN)"] || 0,
+          cde_x: record["Hardness Case Depth (CDE@ 513 Hmv)(X)"] || 0,
+          cde_y: record["Hardness Case Depth (CDE@ 513 Hmv)(Y)"] || 0,
+          core_hardness: record["Core Hardness(ALL-MEAN)"] || 0,
+          compound_layer: record["Compound Layer-P1"] || 0,
+          upper_spec: record.UPPER_SPEC || 100,
+          lower_spec: record.LOWER_SPEC || 0,
+          target_spec: record.TARGET_SPEC || 50,
+          is_active: record.IS_ACTIVE || true
+        };
+      });
+      
+      console.log('Mapped data (first record):', mappedData[0]);
+      console.log(`Total mapped records: ${mappedData.length}`);
+      
       return mappedData;
       
     } catch (error) {
@@ -383,21 +547,14 @@ class MasterDataProcessor {
     furnaceData: FurnaceData;
     cpData: CPData;
     chartDetailData: ChartDetailData;
-    fgEncoded: FGDataEncoding;
   }[] {
+    
     return apiData.map(record => {
-      // ✅ Create FG Encoded data
-      const fgEncoded = FurnaceCodeEncoder.encode(
-        record.furnace_number,
-        record.collected_date,
-        record.fg_code
-      );
-
       // ✅ Map to FurnaceData
       const furnaceData: FurnaceData = {
-        furnaceNo: parseInt(record.furnace_number) || 0,
-        furnaceDescription: record.furnace_description || '',
-        isDisplay: record.is_active || true,
+        furnaceNo: record.furnace_number,
+        furnaceDescription: record.furnace_description,
+        isDisplay: record.is_active,
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -405,84 +562,82 @@ class MasterDataProcessor {
       // ✅ Map to CPData
       const cpData: CPData = {
         CPNo: record.lot_number,
-        furnaceId: [],
+        furnaceId: [], // Will be populated after furnace creation
         specifications: {
-          upperSpecLimit: record.upper_spec || 100,
-          lowerSpecLimit: record.lower_spec || 0,
-          target: record.target_spec || 50
+          upperSpecLimit: record.upper_spec,
+          lowerSpecLimit: record.lower_spec,
+          target: record.target_spec
         },
-        isDisplay: record.is_active || true
+        isDisplay: record.is_active
       };
 
       // ✅ Map to ChartDetailData
       const chartDetailData: ChartDetailData = {
         CPNo: record.lot_number,
-        FGNo: fgEncoded.masterFGcode, // ใช้ code จาก encoder
+        FGNo: record.fg_code,
         chartGeneralDetail: {
-          furnaceNo: parseInt(record.furnace_number) || 0,
+          furnaceNo: record.furnace_number,
           part: record.part_number,
           partName: record.part_name,
-          collectedDate: fgEncoded.masterCollectedDate // ใช้ date จาก encoder
+          collectedDate: record.collected_date
         },
         machanicDetail: {
-          surfaceHardnessMean: record.surface_hardness || 0,
-          hardnessAt01mmMean: record.hardness_01mm || 0,
+          surfaceHardnessMean: record.surface_hardness,
+          hardnessAt01mmMean: record.hardness_01mm,
           CDE: {
-            CDEX: record.cde_x || 0,
-            CDEY: record.cde_y || 0
+            CDEX: record.cde_x,
+            CDEY: record.cde_y
           },
-          coreHardnessMean: record.core_hardness || 0,
-          compoundLayer: record.compound_layer || 0
+          coreHardnessMean: record.core_hardness,
+          compoundLayer: record.compound_layer
         }
       };
 
-      return { furnaceData, cpData, chartDetailData, fgEncoded };
+      return { furnaceData, cpData, chartDetailData };
     });
   }
 
-  // ✅ Bulk POST to 3 collections
+  // ✅ Bulk POST to 3 collections with unique constraints
   private async bulkCreateCollections(mappedData: {
     furnaceData: FurnaceData;
     cpData: CPData;
     chartDetailData: ChartDetailData;
-    fgEncoded: FGDataEncoding;
   }[]): Promise<{
     furnaces: IFurnace[];
     customerProducts: ICP[];
     chartDetails: IChartDetail[];
   }> {
-    const furnaces: IFurnace[] = [];
-    const customerProducts: ICP[] = [];
-    const chartDetails: IChartDetail[] = [];
+    
+    // 1. Bulk create furnaces (unique furnaceNo only)
+    const furnaceDataArray = mappedData.map(m => m.furnaceData);
+    const createdFurnaces = await this.furnaceService.bulkCreateUniqueFurnaces(furnaceDataArray);
+    console.log(`✅ Created ${createdFurnaces.length} unique furnaces`);
 
-    for (const record of mappedData) {
-      try {
-        // 1. Create Furnace first
-        const furnace = await this.furnaceService.createFurnace(record.furnaceData);
-        furnaces.push(furnace);
+    // 2. Get all existing furnaces for reference
+    const allFurnaces = await this.furnaceService.getAllFurnaces();
+    const furnaceMap = new Map(allFurnaces.map(f => [f.furnaceNo, f._id]));
 
-        // 2. Update CPData with furnace ID
-        const cpDataWithFurnace = {
-          ...record.cpData,
-          furnaceId: [furnace._id as Types.ObjectId]
-        };
+    // 3. Update CP data with furnace IDs and bulk create (unique CPNo only)
+    const cpDataArray: CPData[] = mappedData.map(m => {
+      const furnaceId = furnaceMap.get(m.furnaceData.furnaceNo);
+      return {
+        ...m.cpData,
+        furnaceId: furnaceId ? [furnaceId as Types.ObjectId] : []
+      };
+    });
+    const createdCustomerProducts = await this.customerProductService.bulkCreateUniqueCustomerProducts(cpDataArray);
+    console.log(`✅ Created ${createdCustomerProducts.length} unique customer products`);
 
-        // 3. Create Customer Product
-        const customerProduct = await this.customerProductService.createCustomerProduct(cpDataWithFurnace);
-        customerProducts.push(customerProduct);
+    // 4. Bulk create chart details (all records)
+    const chartDetailDataArray = mappedData.map(m => m.chartDetailData);
+    const createdChartDetails = await this.chartDetailService.bulkCreateChartDetails(chartDetailDataArray);
+    console.log(`✅ Created ${createdChartDetails.length} chart details`);
 
-        // 4. Create Chart Detail
-        const chartDetail = await this.chartDetailService.createChartDetail(record.chartDetailData);
-        chartDetails.push(chartDetail);
-
-        console.log(`✅ Created record: ${record.cpData.CPNo}`);
-        
-      } catch (error) {
-        console.error(`❌ Failed to create record: ${record.cpData.CPNo}`, error);
-      }
-    }
-
-    return { furnaces, customerProducts, chartDetails };
+    return { 
+      furnaces: createdFurnaces, 
+      customerProducts: createdCustomerProducts, 
+      chartDetails: createdChartDetails 
+    };
   }
 }
 
