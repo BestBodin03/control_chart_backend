@@ -1,4 +1,17 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import mongoose, { Document, model, Schema, Types } from "mongoose";
+import z from "zod";
+
+// ✅ CUSTOMER PRODUCT MODEL
+export const CustomerProductSchema = z.object({
+  CPNo: z.string().min(1),
+  furnaceId: z.array(z.string()).default([]),
+  specifications: z.object({
+    upperSpecLimit: z.number(),
+    lowerSpecLimit: z.number(),
+    target: z.number()
+  }),
+  isDisplay: z.boolean().default(true).optional()
+});
 
 export interface ICP extends Document {
   CPNo: string;
@@ -9,8 +22,6 @@ export interface ICP extends Document {
     target: number;
   };
   isDisplay: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface CPData {
@@ -21,23 +32,18 @@ export interface CPData {
     lowerSpecLimit: number;
     target: number;
   };
-  isDisplay?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  isDisplay: boolean;
 }
 
-const CPSchema = new Schema<ICP>(
-  {
-    CPNo: { type: String},
-    furnaceId: [{ type: Schema.Types.ObjectId, ref: 'Furnace', required: true }],
-    specifications: {
-      upperSpecLimit: Number,
-      lowerSpecLimit: Number,
-      target: Number,
-    },
-    isDisplay: { type: Boolean, default: true },
+const customerProductSchema = new Schema<ICP>({
+  CPNo: { type: String, required: true, unique: true },
+  furnaceId: [{ type: Schema.Types.ObjectId, ref: 'Furnace' }],
+  specifications: {
+    upperSpecLimit: { type: Number, required: true },
+    lowerSpecLimit: { type: Number, required: true },
+    target: { type: Number, required: true }
   },
-  { timestamps: true }
-);
+  isDisplay: { type: Boolean, default: true }
+}, { timestamps: true });
 
-export default model<ICP>('CustomerProduct', CPSchema);
+export const CustomerProductModel = mongoose.models.CustomerProduct || model<ICP>('CustomerProduct', customerProductSchema);

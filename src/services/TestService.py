@@ -271,7 +271,7 @@ const cpSchema = new Schema<ICP>({
 
 const chartDetailSchema = new Schema<IChartDetail>({
   CPNo: { type: String },
-  FGNo: { type: String },
+  FGNo: { type: String, unique: true},
   chartGeneralDetail: {
     furnaceNo: { type: Number },
     part: { type: String },
@@ -353,18 +353,34 @@ class CustomerProductRepository {
 }
 
 class ChartDetailRepository {
-  async bulkCreate(chartDetailData: ChartDetailData[]): Promise<IChartDetail[]> {
-    return await ChartDetailModel.insertMany(chartDetailData);
-  }
+ async bulkCreate(chartDetailData: ChartDetailData[]): Promise<IChartDetail[]> {
+   try {
+     return await ChartDetailModel.insertMany(chartDetailData, { ordered: false });
+   } catch (error: any) {
+     // Handle duplicate key errors but continue with unique records
+     if (error.code === 11000) {
+       console.log('Some chart details already exist, continuing...');
+       return error.insertedDocs || [];
+     }
+     throw error;
+   }
+ }
 
-  async findByCPNo(cpNo: string): Promise<IChartDetail[]> {
-    return await ChartDetailModel.find({ CPNo: cpNo }).exec();
-  }
+ async findExistingFGNos(fgNos: string[]): Promise<string[]> {
+   const existing = await ChartDetailModel.find({ FGNo: { $in: fgNos } }, 'FGNo').exec();
+   return existing.map(cd => cd.FGNo);
+ }
 
-  async findAll(): Promise<IChartDetail[]> {
-    return await ChartDetailModel.find().exec();
-  }
+ async findByCPNo(cpNo: string): Promise<IChartDetail[]> {
+   return await ChartDetailModel.find({ CPNo: cpNo }).exec();
+ }
+
+ async findAll(): Promise<IChartDetail[]> {
+   return await ChartDetailModel.find().exec();
+ }
 }
+
+
 
 // ✅ SERVICES
 class FurnaceService {
@@ -432,16 +448,35 @@ class CustomerProductService {
 }
 
 class ChartDetailService {
-  constructor(private chartDetailRepository: ChartDetailRepository) {}
+ constructor(private chartDetailRepository: ChartDetailRepository) {}
 
-  async bulkCreateChartDetails(chartDetailDataArray: ChartDetailData[]): Promise<IChartDetail[]> {
-    console.log(`Chart details to insert: ${chartDetailDataArray.length}`);
-    return await this.chartDetailRepository.bulkCreate(chartDetailDataArray);
-  }
+ async bulkCreateUniqueChartDetails(chartDetailDataArray: ChartDetailData[]): Promise<IChartDetail[]> {
+   // Extract unique FG numbers
+   const uniqueFGNos = [...new Set(chartDetailDataArray.map(cd => cd.FGNo))];
+   console.log(`Unique FG numbers to process: ${uniqueFGNos.length}`);
+   
+   // Check existing chart details
+   const existingFGNos = await this.chartDetailRepository.findExistingFGNos(uniqueFGNos);
+   const existingSet = new Set(existingFGNos);
+   
+   // Filter new chart details only
+   const newChartDetailData = chartDetailDataArray.filter(cd => !existingSet.has(cd.FGNo));
+   const uniqueNewChartDetailData = newChartDetailData.filter((cd, index, arr) => 
+     arr.findIndex(item => item.FGNo === cd.FGNo) === index
+   );
+   
+   console.log(`New chart details to insert: ${uniqueNewChartDetailData.length}`);
+   
+   if (uniqueNewChartDetailData.length > 0) {
+     return await this.chartDetailRepository.bulkCreate(uniqueNewChartDetailData);
+   }
+   
+   return [];
+ }
 
-  async getAllChartDetails(): Promise<IChartDetail[]> {
-    return await this.chartDetailRepository.findAll();
-  }
+ async getAllChartDetails(): Promise<IChartDetail[]> {
+   return await this.chartDetailRepository.findAll();
+ }
 }
 
 // ✅ MASTER DATA PROCESSOR
@@ -495,7 +530,7 @@ class MasterDataProcessor {
   // ✅ GET data from API และแปลงเป็น APIResponse
   private async fetchDataFromAPI(): Promise<APIResponse[]> {
     try {
-      const response = await fetch('http://localhost:14000/master-data');
+      const response = await fetch('HTTPS_ARI_URL');
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -513,12 +548,12 @@ class MasterDataProcessor {
         return {
           lot_number: record.LotNo || '',
           furnace_number: fgEncoded.masterFurnaceNo, // Use furnace from FG_CODE
-          furnace_description: record.DESC || record.DESCRIPTION || `Furnace ${fgEncoded.masterFurnaceNo}`,
+          furnace_description: record.DESC || record.DESCRIPTION || '-',
           fg_code: fgCode,
           part_number: record.PART || '',
           part_name: record.PARTNAME || '',
           collected_date: fgEncoded.masterCollectedDate, // Use date from FG_CODE
-          surface_hardness: this.getNestedValue(record, ["Ha@ 0", "1 min", " (MEAN)"]),
+          surface_hardness: this.getNestedValue(record, ["Hardness @ 0", "1 mm", " (From Graph)(ALL-MEAN)"]),
           hardness_01mm: record["Surface Hardness(ALL-MEAN)"] || 0,
           cde_x: record["Hardness Case Depth (CDE@ 513 Hmv)(X)"] || 0,
           cde_y: record["Hardness Case Depth (CDE@ 513 Hmv)(Y)"] || 0,
@@ -630,7 +665,7 @@ class MasterDataProcessor {
 
     // 4. Bulk create chart details (all records)
     const chartDetailDataArray = mappedData.map(m => m.chartDetailData);
-    const createdChartDetails = await this.chartDetailService.bulkCreateChartDetails(chartDetailDataArray);
+    const createdChartDetails = await this.chartDetailService.bulkCreateUniqueChartDetails(chartDetailDataArray);
     console.log(`✅ Created ${createdChartDetails.length} chart details`);
 
     return { 

@@ -1,52 +1,94 @@
 import { Request, Response } from 'express';
-import { IMasterData } from '../utils/masterDataMapper';
-import { FGDataEncoding } from '../utils/masterDataFGEncoding';
-import { masterDataService } from '../utils/ServiceLocator';
-import { fetchMasterData } from '../services/MasterDataService';
+import { ChartDetailService } from '../services/ChartDetailService';
+import { CustomerProductService } from '../services/CustomerProductService';
+import { FurnaceService } from '../services/FurnaceService';
+import { MasterDataService } from '../services/MasterDataService';
 
-export const getMasterData = async (req: Request, res: Response) => {
-  try {
-    const { url } = req.body;
-    const data = await fetchMasterData('http://localhost:3001/raw_data');
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({error});
-  }
-};
+// ✅ Master Data Controller
+export class MasterDataController {
+  constructor(
+    private processor: MasterDataService,
+    private furnaceService: FurnaceService,
+    private customerProductService: CustomerProductService,
+    private chartDetailService: ChartDetailService
+  ) {}
 
-export const addAllCollections = async (req: Request, res: Response): Promise<void> => {
+  // Process from API
+  async processFromAPI(req: Request, res: Response): Promise<void> {
     try {
-      const { masterData, fgEncoded }: { masterData: IMasterData; fgEncoded: FGDataEncoding } = req.body;
-      
-      // Basic validation
-      if (!masterData) {
-        res.status(400).json({ 
-          status: false,
-          message: 'Master data is required' 
-        });
-        return;
-      }
-
-      if (!fgEncoded) {
-        res.status(400).json({ 
-          status: false,
-          message: 'FG encoded data is required' 
-        });
-        return;
-      }
-
-      const result = await masterDataService.addAllCollections(masterData, fgEncoded);
+      const results = await this.processor.processFromAPI();
       
       res.status(201).json({
         status: true,
-        message: "All collections created successfully",
-        data: result,
+        message: 'Master data processed successfully',
+        data: results,
+        summary: {
+          furnaceCount: results.furnaces.length,
+          customerProductCount: results.customerProducts.length,
+          chartDetailCount: results.chartDetails.length,
+          processedAt: new Date()
+        }
       });
     } catch (error) {
-      console.error('Error creating all collections:', error);
       res.status(500).json({
         status: false,
-        message: 'Server error while creating collections'
+        message: 'Failed to process master data',
+        error: error
       });
     }
-};
+  }
+
+  // Get all furnaces
+  async getAllFurnaces(req: Request, res: Response): Promise<void> {
+    try {
+      const furnaces = await this.furnaceService.getAllFurnaces();
+      res.json({
+        status: true,
+        data: furnaces,
+        count: furnaces.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: false,
+        message: 'Failed to get furnaces',
+        error: error
+      });
+    }
+  }
+
+  // Get all customer products
+  async getAllCustomerProducts(req: Request, res: Response): Promise<void> {
+    try {
+      const customerProducts = await this.customerProductService.getAllCustomerProducts();
+      res.json({
+        status: true,
+        data: customerProducts,
+        count: customerProducts.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: false,
+        message: 'Failed to get customer products',
+        error: error
+      });
+    }
+  }
+
+  // Get all chart details
+  async getAllChartDetails(req: Request, res: Response): Promise<void> {
+    try {
+      const chartDetails = await this.chartDetailService.getAllChartDetails();
+      res.json({
+        status: true,
+        data: chartDetails,
+        count: chartDetails.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: false,
+        message: 'Failed to get chart details',
+        error: error
+      });
+    }
+  }
+}

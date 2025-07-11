@@ -1,35 +1,29 @@
-import { Model } from "mongoose";
-import { ChartDetailData, IChartDetail } from "../models/ChartDetail";
+import { ChartDetailData, IChartDetail, ChartDetailModel } from "../models/ChartDetail";
 
 export class ChartDetailRepository {
-  constructor(private chartDetailModel: Model<IChartDetail>) {}
-
-  async create(chartDetailData: ChartDetailData): Promise<IChartDetail> {
-    const chartDetail = new this.chartDetailModel(chartDetailData);
-    return await chartDetail.save();
+  async bulkCreate(chartDetailData: ChartDetailData[]): Promise<IChartDetail[]> {
+    try {
+      return await ChartDetailModel.insertMany(chartDetailData, { ordered: false });
+    } catch (error: any) {
+      // Handle duplicate key errors but continue with unique records
+      if (error.code === 11000) {
+        console.log('Some chart details already exist, continuing...');
+        return error.insertedDocs || [];
+      }
+      throw error;
+    }
   }
 
-  async findById(id: string): Promise<IChartDetail | null> {
-    return await this.chartDetailModel.findById(id);
+  async findExistingFGNos(fgNos: string[]): Promise<string[]> {
+    const existing = await ChartDetailModel.find({ FGNo: { $in: fgNos } }, 'FGNo').exec();
+    return existing.map(cd => cd.FGNo);
   }
 
   async findByCPNo(cpNo: string): Promise<IChartDetail[]> {
-    return await this.chartDetailModel.find({ CPNo: cpNo });
+    return await ChartDetailModel.find({ CPNo: cpNo }).exec();
   }
 
-  async findByFGNo(fgNo: string): Promise<IChartDetail[]> {
-    return await this.chartDetailModel.find({ FGNo: fgNo });
+  async findAll(): Promise<IChartDetail[]> {
+    return await ChartDetailModel.find().exec();
   }
-
-//   async findAll(): Promise<IChartDetail[]> {
-//     return await this.chartDetailModel.find();
-//   }
-
-//   async update(id: string, updateData: Partial<ChartDetailData>): Promise<IChartDetail | null> {
-//     return await this.chartDetailModel.findByIdAndUpdate(id, updateData, { new: true });
-//   }
-
-//   async delete(id: string): Promise<IChartDetail | null> {
-//     return await this.chartDetailModel.findByIdAndDelete(id);
-//   }
 }

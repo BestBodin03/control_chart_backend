@@ -1,31 +1,29 @@
-import { Model } from "mongoose";
-import { CPData, ICP } from "../models/CustomerProduct";
+import { CPData, CustomerProductModel, ICP } from "../models/CustomerProduct";
 
 export class CustomerProductRepository {
-  constructor(private cpModel: Model<ICP>) {}
+  async bulkCreate(cpData: CPData[]): Promise<ICP[]> {
+    try {
+      return await CustomerProductModel.insertMany(cpData, { ordered: false });
+    } catch (error: any) {
+      // Handle duplicate key errors but continue with unique records
+      if (error.code === 11000) {
+        console.log('Some customer products already exist, continuing...');
+        return error.insertedDocs || [];
+      }
+      throw error;
+    }
+  }
 
-  async create(cpData: CPData): Promise<ICP> {
-    const customerProduct = new this.cpModel(cpData);
-    return await customerProduct.save();
+  async findExistingCPNos(cpNos: string[]): Promise<string[]> {
+    const existing = await CustomerProductModel.find({ CPNo: { $in: cpNos } }, 'CPNo').exec();
+    return existing.map(cp => cp.CPNo);
   }
 
   async findByCPNo(cpNo: string): Promise<ICP | null> {
-    return await this.cpModel.findOne({ CPNo: cpNo }).populate('furnaceId');
+    return await CustomerProductModel.findOne({ CPNo: cpNo }).exec();
   }
 
-//   async findAll(): Promise<ICP[]> {
-//     return await this.cpModel.find({ isDisplay: true }).populate('furnaceId');
-//   }
-
-//   async findById(id: string): Promise<ICP | null> {
-//     return await this.cpModel.findById(id).populate('furnaceId');
-//   }
-
-//   async update(id: string, updateData: Partial<CPData>): Promise<ICP | null> {
-//     return await this.cpModel.findByIdAndUpdate(id, updateData, { new: true }).populate('furnaceId');
-//   }
-
-//   async delete(id: string): Promise<ICP | null> {
-//     return await this.cpModel.findByIdAndUpdate(id, { isDisplay: false }, { new: true });
-//   }
+  async findAll(): Promise<ICP[]> {
+    return await CustomerProductModel.find().exec();
+  }
 }

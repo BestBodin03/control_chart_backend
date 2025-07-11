@@ -1,4 +1,29 @@
-import { Schema, model, Document } from 'mongoose';
+import mongoose, { Document, Schema, model } from "mongoose";
+import z from "zod";
+import { CustomerProductSchema } from "./CustomerProduct";
+import { FurnaceSchema } from "./Furnace";
+
+// ✅ CHART DETAIL MODEL
+export const ChartDetailSchema = z.object({
+  CPNo: z.string().min(1),
+  FGNo: z.string().min(1),
+  chartGeneralDetail: z.object({
+    furnaceNo: z.number(),
+    part: z.string(),
+    partName: z.string(),
+    collectedDate: z.date()
+  }),
+  machanicDetail: z.object({
+    surfaceHardnessMean: z.number(),
+    hardnessAt01mmMean: z.number(),
+    CDE: z.object({
+      CDEX: z.number(),
+      CDEY: z.number()
+    }),
+    coreHardnessMean: z.number(),
+    compoundLayer: z.number()
+  })
+});
 
 export interface IChartDetail extends Document {
   CPNo: string;
@@ -19,10 +44,8 @@ export interface IChartDetail extends Document {
     coreHardnessMean: number;
     compoundLayer: number;
   };
-  updatedAt: Date;
 }
 
-// Data interface สำหรับการสร้าง document
 export interface ChartDetailData {
   CPNo: string;
   FGNo: string;
@@ -42,29 +65,39 @@ export interface ChartDetailData {
     coreHardnessMean: number;
     compoundLayer: number;
   };
-  updatedAt?: Date;
 }
 
 const chartDetailSchema = new Schema<IChartDetail>({
-  CPNo: { type: String},
-  FGNo: { type: String},
+  CPNo: { type: String, required: true },
+  FGNo: { type: String, required: true, unique: true },
   chartGeneralDetail: {
-    furnaceNo: { type: Number},
-    part: { type: String},
-    partName: { type: String},
-    collectedDate: { type: Date}
+    furnaceNo: { type: Number, required: true },
+    part: { type: String, required: true },
+    partName: { type: String, required: true },
+    collectedDate: { type: Date, required: true }
   },
   machanicDetail: {
-    surfaceHardnessMean: { type: Number},
-    hardnessAt01mmMean: { type: Number},
+    surfaceHardnessMean: { type: Number, required: true },
+    hardnessAt01mmMean: { type: Number, required: true },
     CDE: {
-      CDEX: { type: Number},
-      CDEY: { type: Number},
+      CDEX: { type: Number, required: true },
+      CDEY: { type: Number, required: true }
     },
-    coreHardnessMean: { type: Number},
-    compoundLayer: { type: Number},
-  },
-  updatedAt: { type: Date, default: Date.now },
-});
+    coreHardnessMean: { type: Number, required: true },
+    compoundLayer: { type: Number, required: true }
+  }
+}, { timestamps: true });
 
-export default model<IChartDetail>('ChartDetail', chartDetailSchema);
+export const ChartDetailModel = mongoose.models.ChartDetail || model<IChartDetail>('ChartDetail', chartDetailSchema);
+
+// ✅ TYPE EXPORTS
+export type FurnaceInput = z.infer<typeof FurnaceSchema>;
+export type CustomerProductInput = z.infer<typeof CustomerProductSchema>;
+export type ChartDetailInput = z.infer<typeof ChartDetailSchema>;
+
+// ✅ FG DATA ENCODING INTERFACE
+export interface FGDataEncoding {
+  masterCollectedDate: Date;
+  masterFurnaceNo: number;
+  masterFGcode: string;
+}

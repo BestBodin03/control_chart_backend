@@ -1,32 +1,30 @@
-import { Model } from "mongoose";
-import { FurnaceData, IFurnace } from "../models/Furnace";
+import { FurnaceData, FurnaceModel, IFurnace } from "../models/Furnace";
 
+// ✅ Furnace Repository
 export class FurnaceRepository {
-  constructor(private furnaceModel: Model<IFurnace>) {}
-
-  async create(furnaceData: FurnaceData): Promise<IFurnace> {
-    const furnace = new this.furnaceModel(furnaceData);
-    return await furnace.save();
+  async bulkCreate(furnaceData: FurnaceData[]): Promise<IFurnace[]> {
+    try {
+      return await FurnaceModel.insertMany(furnaceData, { ordered: false });
+    } catch (error: any) {
+      // Handle duplicate key errors but continue with unique records
+      if (error.code === 11000) {
+        console.log('Some furnaces already exist, continuing...');
+        return error.insertedDocs || [];
+      }
+      throw error;
+    }
   }
 
-  async findAll(): Promise<IFurnace[]> {
-    return await this.furnaceModel.find({ isDisplay: true });
+  async findExistingFurnaceNos(furnaceNos: number[]): Promise<number[]> {
+    const existing = await FurnaceModel.find({ furnaceNo: { $in: furnaceNos } }, 'furnaceNo').exec();
+    return existing.map(f => f.furnaceNo);
   }
 
   async findByFurnaceNo(furnaceNo: number): Promise<IFurnace | null> {
-    return await this.furnaceModel.findOne({ furnaceNo });
+    return await FurnaceModel.findOne({ furnaceNo }).exec();
   }
 
-//   async findById(id: string): Promise<IFurnace | null> {
-//     return await this.furnaceModel.findById(id);
-//   }
-
-
-//   async update(id: string, updateData: Partial<FurnaceData>): Promise<IFurnace | null> {
-//     return await this.furnaceModel.findByIdAndUpdate(id, updateData, { new: true });
-//   }
-
-//   async delete(id: string): Promise<IFurnace | null> {
-//     return await this.furnaceModel.findByIdAndUpdate(id, { isDisplay: false }, { new: true });
-//   }
+  async findAll(): Promise<IFurnace[]> {
+    return await FurnaceModel.find().exec();
+  }
 }

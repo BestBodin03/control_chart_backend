@@ -1,4 +1,12 @@
-import { Schema, model, Document } from 'mongoose';
+import mongoose, { Schema, model, Document, Types } from 'mongoose';
+import { z } from 'zod';
+
+// ✅ FURNACE MODEL
+export const FurnaceSchema = z.object({
+  furnaceNo: z.number().int().positive(),
+  furnaceDescription: z.string().min(1),
+  isDisplay: z.boolean().default(true).optional()
+});
 
 export interface IFurnace extends Document {
   furnaceNo: number;
@@ -12,19 +20,14 @@ export interface FurnaceData {
   furnaceNo: number;
   furnaceDescription: string;
   isDisplay: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const furnaceSchema = new Schema<IFurnace>(
-  {
-    furnaceNo: { type: Number },
-    furnaceDescription: { type: String },
-    isDisplay: { type: Boolean, default: true },
-  },
-  {
-    timestamps: true,
-  }
-);
+const furnaceSchema = new Schema<IFurnace>({
+  furnaceNo: { type: Number, required: true, unique: true },
+  furnaceDescription: { type: String, required: true },
+  isDisplay: { type: Boolean, default: true }
+}, { timestamps: true });
 
-export default model<IFurnace>('Furnace', furnaceSchema);
+export const FurnaceModel = mongoose.models.Furnace || model<IFurnace>('Furnace', furnaceSchema);
