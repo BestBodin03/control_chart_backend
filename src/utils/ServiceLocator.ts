@@ -6,23 +6,14 @@ import { CustomerProductService } from "../services/CustomerProductService";
 import { FurnaceService } from "../services/FurnaceService";
 import { MasterDataService } from "../services/MasterDataService";
 
+export const furnaceRepository = new FurnaceRepository();
+export const furnaceService = new FurnaceService(furnaceRepository);
 
-const furnaceRepository = new FurnaceRepository();
-const chartDetailRepository = new ChartDetailRepository();
-const customerProductRepository = new CustomerProductRepository();
 
-const furnaceService = new FurnaceService(furnaceRepository);
-const chartDetailService = new ChartDetailService(chartDetailRepository);
-const customerProductService = new CustomerProductService(customerProductRepository);
-const masterDataService = new MasterDataService(
-  furnaceService,
-  customerProductService,
-  chartDetailService,
-);
+export const cpRepository = new CustomerProductRepository();
+export const customerProductService = new CustomerProductService(cpRepository);
 
-export {
-  furnaceService,
-  chartDetailService,
-  customerProductService,
-  masterDataService
-};
+export const chartDetailRepository = new ChartDetailRepository();
+export const chartDetailService = new ChartDetailService(chartDetailRepository);
+
+export const masterDataService = new MasterDataService(furnaceService, customerProductService, chartDetailService);

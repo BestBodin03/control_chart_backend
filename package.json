@@ -7,11 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "ts-node ./dist/index.js",
-    "dev": "nodemon",
-    "pm2:start": "pm2 start ecosystem.config.js",
-    "pm2:stop": "pm2 stop all",
-    "pm2:restart": "pm2 restart all",
-    "pm2:delete": "pm2 delete all"
+    "dev": "nodemon"
   },
   "repository": {
     "type": "git",

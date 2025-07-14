@@ -1,18 +1,11 @@
 import { Router } from "express";
-import { ChartDetailService } from "../../../services/ChartDetailService";
-import { CustomerProductService } from "../../../services/CustomerProductService";
-import { FurnaceService } from "../../../services/FurnaceService";
-import { MasterDataService } from "../../../services/MasterDataService";
-
+import { masterDataService, furnaceService, customerProductService, chartDetailService } from "../../../utils/ServiceLocator";
 
 const router = Router();
+
 router.get('/test/process-master-data', async (req, res) => {
   try {
-    const service = new MasterDataService(
-      new FurnaceService(furnaceRepository),
-      new CustomerProductService(),
-      new ChartDetailService()
-    );
+    const service = masterDataService;
     const result = await service.processFromAPI();
     res.json(result);
   } catch (error) {
@@ -22,7 +15,7 @@ router.get('/test/process-master-data', async (req, res) => {
 
 router.get('/test/furnaces', async (req, res) => {
   try {
-    const service = new FurnaceService();
+    const service = furnaceService;
     const result = await service.getAllFurnaces();
     res.json(result);
   } catch (error) {
@@ -32,7 +25,7 @@ router.get('/test/furnaces', async (req, res) => {
 
 router.get('/test/customer-products', async (req, res) => {
   try {
-    const service = new CustomerProductService();
+    const service = customerProductService;
     const result = await service.getAllCustomerProducts();
     res.json(result);
   } catch (error) {
@@ -42,7 +35,7 @@ router.get('/test/customer-products', async (req, res) => {
 
 router.get('/test/chart-details', async (req, res) => {
   try {
-    const service = new ChartDetailService();
+    const service = chartDetailService;
     const result = await service.getAllChartDetails();
     res.json(result);
   } catch (error) {
@@ -50,4 +43,4 @@ router.get('/test/chart-details', async (req, res) => {
   }
 });
 
-export { router as masterRoutes };
+export { router as masterDataRoutes };

@@ -32,13 +32,13 @@ export class FurnaceCodeEncoder {
   // Extract date from FG_CODE format: G<YY><M><DD>B<FurnaceNo>XX
   private static extractDateFromFGCode(fgCode: string): Date {
     try {
-      console.log('Extracting date from FG_CODE:', fgCode);
+      // console.log('Extracting date from FG_CODE:', fgCode);
       
       // Pattern: G<YY><M><DD>B<FurnaceNo>XX
       const match = fgCode.match(/^G([0-9A-C]{5})B/);
       
       if (!match) {
-        console.warn('Invalid FG_CODE format:', fgCode);
+        // console.warn('Invalid FG_CODE format:', fgCode);
         return new Date();
       }
       
@@ -64,20 +64,20 @@ export class FurnaceCodeEncoder {
       // Create date using UTC with current time
       const extractedDate = new Date(Date.UTC(fullYear, m - 1, dd, hours, minutes, seconds, milliseconds));
       
-      console.log('Date extraction result:', { 
-        fgCode, 
-        yy, 
-        encodedMonth, 
-        decodedMonth: m, 
-        dd, 
-        fullYear,
-        result: extractedDate.toISOString() 
-      });
+      // console.log('Date extraction result:', { 
+      //   fgCode, 
+      //   yy, 
+      //   encodedMonth, 
+      //   decodedMonth: m, 
+      //   dd, 
+      //   fullYear,
+      //   result: extractedDate.toISOString() 
+      // });
       
       return extractedDate;
       
     } catch (error) {
-      console.error('Error extracting date from FG_CODE:', error, fgCode);
+      // console.error('Error extracting date from FG_CODE:', error, fgCode);
       return new Date();
     }
   }
@@ -85,33 +85,33 @@ export class FurnaceCodeEncoder {
   // Extract furnace number from FG_CODE (ตำแหน่งที่ 8)
   private static extractFurnaceFromFGCode(fgCode: string): number {
     try {
-      console.log('Extracting furnace from FG_CODE:', fgCode);
+      // console.log('Extracting furnace from FG_CODE:', fgCode);
       
       // Pattern: G<YYMDD>B<FurnaceNo>XX - ตำแหน่งที่ 8 คือ FurnaceNo
       // ตัวอย่าง: G25521B1XX -> position 8 = '1'
       if (fgCode.length < 8) {
-        console.warn('FG_CODE too short:', fgCode);
+        // console.warn('FG_CODE too short:', fgCode);
         return 1;
       }
       
       const furnaceChar = fgCode.charAt(7); // Position 8 (0-indexed = 7)
-      console.log('Furnace character at position 8:', furnaceChar);
+      // console.log('Furnace character at position 8:', furnaceChar);
       
       // If it's a number (1-9)
       if (/^\d$/.test(furnaceChar)) {
         const furnaceNo = parseInt(furnaceChar, 10);
-        console.log('Decoded furnace number:', furnaceNo);
+        // console.log('Decoded furnace number:', furnaceNo);
         return furnaceNo;
       }
       
       // If it's a letter (A=10, B=11, etc.)
       if (/^[A-Z]$/.test(furnaceChar)) {
         const furnaceNo = furnaceChar.charCodeAt(0) - 65 + 10;
-        console.log('Decoded furnace number from letter:', furnaceNo);
+        // console.log('Decoded furnace number from letter:', furnaceNo);
         return furnaceNo;
       }
       
-      console.warn('Invalid furnace character:', furnaceChar);
+      // console.warn('Invalid furnace character:', furnaceChar);
       return 1; // Default
     } catch (error) {
       console.error('Error extracting furnace from FG_CODE:', error);
@@ -126,12 +126,12 @@ export class FurnaceCodeEncoder {
     const extractedDate = this.extractDateFromFGCode(code);
     const extractedFurnaceNo = this.extractFurnaceFromFGCode(code);
     
-    console.log('FG_CODE Processing Results:', {
-      originalCode: code,
-      extractedDate: extractedDate.toISOString(),
-      extractedFurnaceNo,
-      inputFurnaceNo: masterFurnaceNo
-    });
+    // console.log('FG_CODE Processing Results:', {
+    //   originalCode: code,
+    //   extractedDate: extractedDate.toISOString(),
+    //   extractedFurnaceNo,
+    //   inputFurnaceNo: masterFurnaceNo
+    // });
 
     return {
       masterCollectedDate: extractedDate, // Use date extracted from FG_CODE
