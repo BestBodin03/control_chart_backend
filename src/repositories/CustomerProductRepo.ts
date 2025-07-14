@@ -15,7 +15,7 @@ export class CustomerProductRepository {
   }
 
   async findExistingCPNos(cpNos: string[]): Promise<string[]> {
-    const existing = await CustomerProductModel.find({ CPNo: { $in: cpNos } }, 'CPNo').exec();
+    const existing = await CustomerProductModel.find({ CPNo: { $for: cpNos } }, 'CPNo').exec();
     return existing.map(cp => cp.CPNo);
   }
 

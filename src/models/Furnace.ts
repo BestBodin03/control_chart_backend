@@ -1,12 +1,5 @@
 import mongoose, { Schema, model, Document, Types } from 'mongoose';
-import { z } from 'zod';
 
-// ✅ FURNACE MODEL
-export const FurnaceSchema = z.object({
-  furnaceNo: z.number().int().positive(),
-  furnaceDescription: z.string().min(1),
-  isDisplay: z.boolean().default(true).optional()
-});
 
 export interface IFurnace extends Document {
   furnaceNo: number;

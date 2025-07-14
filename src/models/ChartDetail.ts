@@ -1,29 +1,8 @@
 import mongoose, { Document, Schema, model } from "mongoose";
+import { FurnaceValidation } from "./validations/FurnaceValidate";
+import { ChartDetailValidate } from "./validations/ChartDetailValidate";
+import { CustomerProductValidate } from "./validations/CustomerProductValidate";
 import z from "zod";
-import { CustomerProductSchema } from "./CustomerProduct";
-import { FurnaceSchema } from "./Furnace";
-
-// ✅ CHART DETAIL MODEL
-export const ChartDetailSchema = z.object({
-  CPNo: z.string().min(1),
-  FGNo: z.string().min(1),
-  chartGeneralDetail: z.object({
-    furnaceNo: z.number(),
-    part: z.string(),
-    partName: z.string(),
-    collectedDate: z.date()
-  }),
-  machanicDetail: z.object({
-    surfaceHardnessMean: z.number(),
-    hardnessAt01mmMean: z.number(),
-    CDE: z.object({
-      CDEX: z.number(),
-      CDEY: z.number()
-    }),
-    coreHardnessMean: z.number(),
-    compoundLayer: z.number()
-  })
-});
 
 export interface IChartDetail extends Document {
   CPNo: string;
@@ -91,13 +70,6 @@ const chartDetailSchema = new Schema<IChartDetail>({
 export const ChartDetailModel = mongoose.models.ChartDetail || model<IChartDetail>('ChartDetail', chartDetailSchema);
 
 // ✅ TYPE EXPORTS
-export type FurnaceInput = z.infer<typeof FurnaceSchema>;
-export type CustomerProductInput = z.infer<typeof CustomerProductSchema>;
-export type ChartDetailInput = z.infer<typeof ChartDetailSchema>;
-
-// ✅ FG DATA ENCODING INTERFACE
-export interface FGDataEncoding {
-  masterCollectedDate: Date;
-  masterFurnaceNo: number;
-  masterFGcode: string;
-}
+export type FurnaceInput = z.infer<typeof FurnaceValidation>;
+export type CustomerProductInput = z.infer<typeof CustomerProductValidate>;
+export type ChartDetailInput = z.infer<typeof ChartDetailValidate>;

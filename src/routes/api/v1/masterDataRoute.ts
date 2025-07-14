@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { masterDataService, furnaceService, customerProductService, chartDetailService } from "../../../utils/ServiceLocator";
+import { masterDataService, furnaceService, customerProductService, chartDetailService } from "../../../utils/serviceLocator";
 
 const router = Router();
 

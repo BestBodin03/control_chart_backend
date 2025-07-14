@@ -4,11 +4,11 @@ import { CPData, ICP } from "../models/CustomerProduct";
 import { FurnaceData, IFurnace } from "../models/Furnace";
 import { MasterApiResponse } from "../models/MasterApiResponse";
 import { FurnaceCodeEncoder } from "../utils/masterDataFGEncoder";
-import { chartDetailService, customerProductService, furnaceService } from "../utils/ServiceLocator";
 import { ChartDetailService } from "./ChartDetailService";
 import { CustomerProductService } from "./CustomerProductService";
 import { FurnaceService } from "./FurnaceService";
 import { MASTER_API } from "../config/constans";
+import { furnaceService, customerProductService, chartDetailService } from "../utils/serviceLocator";
 
 export class MasterDataService {
     constructor(
