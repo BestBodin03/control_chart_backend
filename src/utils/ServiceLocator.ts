@@ -1,3 +1,4 @@
+import { PeriodFilterController } from "../controllers/PeriodFilterController";
 import { ChartDetailRepository } from "../repositories/ChartDetailRepo";
 import { CustomerProductRepository } from "../repositories/CustomerProductRepo";
 import { FurnaceRepository } from "../repositories/FurnaceRepo";
@@ -20,5 +21,7 @@ export const chartDetailService = new ChartDetailService(chartDetailRepository);
 
 export const settingRepository = new SettingRepository();
 export const settingService = new SettingService();
+
+export const periodFilterController = new PeriodFilterController();
 
 export const masterDataService = new MasterDataService(furnaceService, customerProductService, chartDetailService);

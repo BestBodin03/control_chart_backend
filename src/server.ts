@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import apiRouter from './routes/apis'
-import connectMongoDB from './databases/mongoDb';
+import  connectMongoDB, { chooseMongoCollection } from './databases/mongoDb';
 import { API_V1_PREFIX } from './config/constans';
 
 
