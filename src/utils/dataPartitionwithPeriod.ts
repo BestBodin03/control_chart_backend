@@ -2,7 +2,7 @@ import { count } from "console";
 import { ChartDetailData, ChartDetailModel, IChartDetail } from "../models/ChartDetail";
 import { ISetting, SettingData, SettingModel } from "../models/Setting";
 
-interface IPeriodFilter {
+export interface IPeriodFilter {
   name: String;
   startDate: Date;
   endDate: Date;

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { masterDataService, furnaceService, customerProductService, chartDetailService } from "../../../utils/serviceLocator";
+import { masterDataService, furnaceService, customerProductService, chartDetailService, masterDataController } from "../../../utils/serviceLocator";
 
 const router = Router();
 
@@ -33,14 +33,8 @@ router.get('/test/customer-products', async (req, res) => {
   }
 });
 
-router.get('/test/chart-details', async (req, res) => {
-  try {
-    const service = chartDetailService;
-    const result = await service.getAllChartDetails();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get chart details' });
-  }
+router.get('/chart-details', async (req, res) => {
+  masterDataController.getAllChartDetails;
 });
 
 export { router as masterDataRoutes };

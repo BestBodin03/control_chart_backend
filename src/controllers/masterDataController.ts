@@ -7,7 +7,7 @@ import { MasterDataService } from '../services/MasterDataService';
 // ✅ Master Data Controller
 export class MasterDataController {
   constructor(
-    private processor: MasterDataService,
+    private masterDataService: MasterDataService,
     private furnaceService: FurnaceService,
     private customerProductService: CustomerProductService,
     private chartDetailService: ChartDetailService
@@ -16,7 +16,7 @@ export class MasterDataController {
   // Process from API
   async processFromAPI(req: Request, res: Response): Promise<void> {
     try {
-      const results = await this.processor.processFromAPI();
+      const results = await this.masterDataService.processFromAPI();
       
       res.status(201).json({
         status: true,

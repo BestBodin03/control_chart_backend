@@ -2,6 +2,8 @@ import { Response, Request, NextFunction } from "express";
 import { ChartDetailModel } from "../models/ChartDetail";
 import { DataPartitionwithPeriod } from "../utils/dataPartitionwithPeriod";
 import { SettingModel } from "../models/Setting";
+import { chartDetailService } from "../utils/serviceLocator";
+import { IChartDetailsFiltering } from "../models/ChartDetailFiltering";
 
 export class PeriodFilterController {
   
@@ -54,4 +56,31 @@ export class PeriodFilterController {
       });
     }
   }
+
+async getDynamicFiltering(req: Request, res: Response): Promise<void> {
+    try {
+      // Parse filters from query params
+      const filters: IChartDetailsFiltering = {
+        period: req.query.period ? JSON.parse(req.query.period as string) : undefined,
+        furnaceNo: req.query.furnaceNo ? Number(req.query.furnaceNo) : 0,
+        matNo: req.query.matNo as string
+      };
+
+      // Remove undefined values
+      const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+        if (value !== undefined) acc[key] = value;
+        return acc;
+      }, {} as any);
+
+      // Call service
+      const result = await chartDetailService.handleDynamicFiltering(
+        Object.keys(cleanFilters).length > 0 ? cleanFilters : undefined
+      );
+
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get filtered data' });
+    }
+  }
+
 }

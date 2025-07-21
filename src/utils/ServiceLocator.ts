@@ -1,3 +1,4 @@
+import { MasterDataController } from "../controllers/MasterDataController";
 import { PeriodFilterController } from "../controllers/PeriodFilterController";
 import { ChartDetailRepository } from "../repositories/ChartDetailRepo";
 import { CustomerProductRepository } from "../repositories/CustomerProductRepo";
@@ -25,3 +26,4 @@ export const settingService = new SettingService();
 export const periodFilterController = new PeriodFilterController();
 
 export const masterDataService = new MasterDataService(furnaceService, customerProductService, chartDetailService);
+export const masterDataController = new MasterDataController( masterDataService, furnaceService, customerProductService, chartDetailService);
