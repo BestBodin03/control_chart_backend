@@ -23,7 +23,7 @@ router.get('/test/furnaces', async (req, res) => {
   }
 });
 
-router.get('/test/customer-products', async (req, res) => {
+router.get('/test/material-no', async (req, res) => {
   try {
     const service = customerProductService;
     const result = await service.getAllCustomerProducts();
@@ -33,8 +33,8 @@ router.get('/test/customer-products', async (req, res) => {
   }
 });
 
-router.get('/chart-details', async (req, res) => {
-  masterDataController.getAllChartDetails;
+router.get('/test/chart-details', async (req, res) => {
+  masterDataController.getAllChartDetails(req, res);
 });
 
 export { router as masterDataRoutes };

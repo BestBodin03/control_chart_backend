@@ -70,6 +70,6 @@ const chartDetailSchema = new Schema<IChartDetail>({
 export const ChartDetailModel = mongoose.models.ChartDetail || model<IChartDetail>('ChartDetail', chartDetailSchema);
 
 // ✅ TYPE EXPORTS
-export type FurnaceInput = z.infer<typeof FurnaceValidation>;
-export type CustomerProductInput = z.infer<typeof CustomerProductValidate>;
-export type ChartDetailInput = z.infer<typeof ChartDetailValidate>;
+// export type FurnaceInput = z.infer<typeof FurnaceValidation>;
+// export type CustomerProductInput = z.infer<typeof CustomerProductValidate>;
+// export type ChartDetailInput = z.infer<typeof ChartDetailValidate>;
