@@ -1,3 +1,4 @@
+import { ChartDetailController } from "../controllers/ChartDetailController";
 import { MasterDataController } from "../controllers/MasterDataController";
 import { PeriodFilterController } from "../controllers/PeriodFilterController";
 import { ChartDetailRepository } from "../repositories/ChartDetailRepo";
@@ -19,6 +20,7 @@ export const customerProductService = new CustomerProductService(cpRepository);
 
 export const chartDetailRepository = new ChartDetailRepository();
 export const chartDetailService = new ChartDetailService(chartDetailRepository);
+export const chartDetailController = new ChartDetailController();
 
 export const settingRepository = new SettingRepository();
 export const settingService = new SettingService();
