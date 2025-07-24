@@ -1,8 +1,9 @@
 import { ChartDetailData, IChartDetail } from "../models/ChartDetail";
-import { IChartDetailsFiltering, FilteredResult } from "../models/ChartDetailFiltering";
+import { IChartDetailsFiltering, FilteredResult, IMRChartResult } from "../models/ChartDetailFiltering";
 import { ChartDetailRepository } from "../repositories/ChartDetailRepo";
 import { Router, Request, Response } from "express";
 import { chartDetailController } from "../utils/serviceLocator";
+import { IPeriodFilter } from "../utils/dataPartitionwithPeriod";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {
@@ -39,7 +40,10 @@ export class ChartDetailService {
     parseFiltersFromRequest(req: Request): IChartDetailsFiltering | undefined {
         try {
             const filters: IChartDetailsFiltering = {
-                period: req.query.period ? JSON.parse(req.query.period as string) : undefined,
+                period: {
+                startDate: req.query.startDate ? JSON.parse(req.query.startDate as string) : undefined,
+                endDate: req.query.endDate ? JSON.parse(req.query.endDate as string) : undefined,
+                },
                 furnaceNo: req.query.furnaceNo ? Number(req.query.furnaceNo) : 0,
                 matNo: req.query.matNo as string
             };
@@ -104,16 +108,37 @@ export class ChartDetailService {
         };
     }
 
-    private filterByPeriod(data: IChartDetail[], period: any): IChartDetail[] {
+    private filterByPeriod(data: IChartDetail[], period: IPeriodFilter): IChartDetail[] {
         return data.filter(item => {
-            // Add your period filtering logic here
-            return true;
+            try {
+                // สมมติว่า IChartDetail มี field ชื่อ 'collectedDate' หรือ 'createdAt'
+                const itemDateString = item.chartGeneralDetail.collectedDate;
+                
+                if (!itemDateString) {
+                    return false; // ถ้าไม่มีวันที่ให้ skip
+                }
+                
+                const itemDate = new Date(itemDateString);
+                const startDate = new Date(period.startDate);
+                const endDate = new Date(period.endDate);
+                
+                // ตรวจสอบว่า date ถูกต้อง
+                if (isNaN(itemDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                    return false;
+                }
+                
+                // กรองข้อมูลที่อยู่ในช่วงวันที่ (inclusive)
+                return itemDate >= startDate && itemDate <= endDate;
+                
+            } catch (error) {
+                console.error('Error filtering by period:', error);
+                return false;
+            }
         });
     }
 
     async getFilteredDataForCalculation(filters?: IChartDetailsFiltering): Promise<any> {
         try {
-            // Logic การกรอง data (ย้ายมาจาก controller)
             const result = await this.handleDynamicFiltering(filters);
             return result;
         } catch (error) {
@@ -121,7 +146,7 @@ export class ChartDetailService {
         }
     }
 
-    async calculateIMRChart(req: Request): Promise<any[]> {
+    async calculateIMRChart(req: Request): Promise<IMRChartResult> {
         try {
             const filters = this.parseFiltersFromRequest(req);
             const dataForChart = await this.handleDynamicFiltering(filters);
@@ -191,7 +216,7 @@ export class ChartDetailService {
             // สำหรับ MR Chart ใช้สูตรต่างจาก I-Chart
             
             // ✅ สร้าง Response ตามรูปแบบที่ต้องการ
-            const result = [{
+            const result: IMRChartResult = {
                 average: Number(average.toFixed(3)),
                 MRAverage: Number(mrAverage.toFixed(3)),
                 controlLimitIChart: {
@@ -212,7 +237,7 @@ export class ChartDetailService {
                     UCL: Number(mrChartUCL.toFixed(3)),
                     LCL: Number(mrChartLCL.toFixed(3))
                 }
-            }];
+            };
             
             console.log('I-MR Chart Calculation Results:', result);
             return result;

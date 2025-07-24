@@ -16,13 +16,13 @@ export class TimeConverter {
     const now = new Date();
     
     switch (periodType) {
-      case PeriodType.THIS_MONTH:
+      case PeriodType.ONE_MONTH:
         return {
           startDate: new Date(now.getFullYear(), now.getMonth(), 1),
           endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0)
         };
 
-      case PeriodType.PAST_MONTH:
+      case PeriodType.ONE_MONTH:
         const days = pastDays || 30;
         return {
           startDate: new Date(now.getTime() - (days * 24 * 60 * 60 * 1000)),

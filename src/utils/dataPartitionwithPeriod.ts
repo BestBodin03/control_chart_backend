@@ -3,7 +3,6 @@ import { ChartDetailData, ChartDetailModel, IChartDetail } from "../models/Chart
 import { ISetting, SettingData, SettingModel } from "../models/Setting";
 
 export interface IPeriodFilter {
-  name: String;
   startDate: Date;
   endDate: Date;
 }
@@ -46,7 +45,6 @@ export class DataPartitionwithPeriod {
                 data: dataPartition,
                 count: dataPartition.length,
                 periodInfo: {
-                    name: periodFilter.name,
                     startDate: periodFilter.startDate,
                     endDate: periodFilter.endDate
                 }

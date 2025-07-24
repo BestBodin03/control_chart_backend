@@ -13,7 +13,7 @@ router.get('/test/process-master-data', async (req, res) => {
   }
 });
 
-router.get('/test/furnaces', async (req, res) => {
+router.get('/all-furnaces', async (req, res) => {
   try {
     const service = furnaceService;
     const result = await service.getAllFurnaces();
@@ -23,7 +23,7 @@ router.get('/test/furnaces', async (req, res) => {
   }
 });
 
-router.get('/test/material-no', async (req, res) => {
+router.get('/all-material-no', async (req, res) => {
   try {
     const service = customerProductService;
     const result = await service.getAllCustomerProducts();

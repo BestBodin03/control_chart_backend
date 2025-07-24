@@ -43,7 +43,7 @@ export class SettingService {
 
     // ✅ For PAST_MONTH, check if customDays is provided in the period object
     let pastDays: number | undefined;
-    if (periodType === PeriodType.PAST_MONTH) {
+    if (periodType === PeriodType.ONE_MONTH) {
       // You can extend the interface to include customDays if needed
       pastDays = (settingData.generalSetting.period as any).customDays || 30;
     }
