@@ -1,10 +1,11 @@
 import { count } from "console";
 import { ChartDetailData, ChartDetailModel, IChartDetail } from "../models/ChartDetail";
 import { ISetting, SettingData, SettingModel } from "../models/Setting";
+import { SuperRefinement } from "zod";
 
 export interface IPeriodFilter {
-  startDate: Date;
-  endDate: Date;
+  startDate: string;
+  endDate: string;
 }
 
 export class DataPartitionwithPeriod {

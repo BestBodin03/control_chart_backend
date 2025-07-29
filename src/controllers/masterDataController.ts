@@ -78,14 +78,9 @@ export class MasterDataController {
   async getAllChartDetails(req: Request, res: Response): Promise<void> {
     try {
       const chartDetails = await this.chartDetailService.getAllChartDetails();
-      res.json({
-        status: true,
-        data: chartDetails,
-        count: chartDetails.length
-      });
+      res.json({ chartDetails});
     } catch (error) {
       res.status(500).json({
-        status: false,
         message: 'Failed to get chart details',
         error: error
       });

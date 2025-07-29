@@ -37,14 +37,14 @@ export class ChartDetailService {
     return await this.chartDetailRepository.findAll();
   }
 
-    parseFiltersFromRequest(req: Request): IChartDetailsFiltering | undefined {
+    private parseFiltersFromRequest(req: Request): IChartDetailsFiltering | undefined {
         try {
             const filters: IChartDetailsFiltering = {
                 period: {
                 startDate: req.query.startDate ? JSON.parse(req.query.startDate as string) : undefined,
                 endDate: req.query.endDate ? JSON.parse(req.query.endDate as string) : undefined,
                 },
-                furnaceNo: req.query.furnaceNo ? Number(req.query.furnaceNo) : 0,
+                furnaceNo: req.query.furnaceNo ? JSON.parse(req.query.furnaceNo as string) : undefined,
                 matNo: req.query.matNo as string
             };
 
@@ -74,39 +74,68 @@ export class ChartDetailService {
         }
     }
 
-    // ✅ Method เดิมยังคงอยู่สำหรับใช้ภายใน
-    async handleDynamicFiltering(filters?: IChartDetailsFiltering): Promise<FilteredResult<IChartDetail>> {
-        // ... existing implementation
-        const allData = await this.chartDetailRepository.findAll();
-        
-        if (!filters) {
-            return {
-                data: allData,
-                total: allData.length,
-                filters: filters || {} as IChartDetailsFiltering
-            };
-        }
-
-        let filteredData = [...allData];
-
-        if (filters.period) {
-            filteredData = this.filterByPeriod(filteredData, filters.period);
-        }
-
-        if (filters.furnaceNo !== undefined) {
-            filteredData = filteredData.filter(item => item.chartGeneralDetail.furnaceNo === filters.furnaceNo);
-        }
-
-        if (filters.matNo) {
-            filteredData = filteredData.filter(item => item.CPNo === filters.matNo);
-        }
-
+async handleDynamicFiltering(filters?: IChartDetailsFiltering): Promise<FilteredResult<IChartDetail>> {
+    const allData = await this.chartDetailRepository.findAll();
+    
+    if (!filters) {
         return {
-            data: filteredData,
-            total: filteredData.length,
-            filters
+            data: allData,
+            total: allData.length,
+            filters: filters || {} as IChartDetailsFiltering
         };
     }
+
+    let filteredData = [...allData];
+
+    // Apply filters one by one
+    Object.entries(filters).forEach(([key, value]) => {
+        if (this.validateApplyFilter(key, value)) {
+            filteredData = this.applyFilter(filteredData, key, value);
+        }
+    });
+    
+    return {
+        data: filteredData,
+        total: filteredData.length,
+        filters
+    };
+}
+
+private validateApplyFilter(key: string, value: any): boolean {
+    if (value === undefined || value === null || value === '') {
+        return false;
+    }
+    
+    // Special validation for period
+    if (key === 'period') {
+        return value.startDate && value.endDate && 
+               value.startDate !== undefined && value.endDate !== undefined;
+    }
+    
+    return true;
+}
+
+private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): IChartDetail[] {
+    switch (filterKey) {
+        case 'period':
+            return this.filterByPeriod(data, filterValue as IPeriodFilter);
+            
+        case 'furnaceNo':
+            return data.filter(item => 
+                item.chartGeneralDetail?.furnaceNo?.toString() === filterValue?.toString()
+            );
+            
+        case 'matNo':
+            return data.filter(item => 
+                item.CPNo === filterValue
+            );
+            
+        default:
+            console.warn(`Unknown filter key: ${filterKey}`);
+            return data;
+    }
+}
+
 
     private filterByPeriod(data: IChartDetail[], period: IPeriodFilter): IChartDetail[] {
         return data.filter(item => {

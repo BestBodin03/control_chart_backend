@@ -2,10 +2,10 @@ import { IPeriodFilter } from "../utils/dataPartitionwithPeriod";
 
 export interface IChartDetailsFiltering {
   period: {
-    startDate: Date;
-    endDate: Date;
+    startDate: string;
+    endDate: string;
   }
-  furnaceNo: number;
+  furnaceNo: string;
   matNo: string;
 }
 
