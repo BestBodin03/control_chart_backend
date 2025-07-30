@@ -31,9 +31,10 @@ export interface SigmaLevels {
 }
 
 export interface IMRChartResult {
- average: number;
- MRAverage: number;
- controlLimitIChart: ControlLimits;
- sigmaIChart: SigmaLevels;
- controlLimitMRChart: ControlLimits;
+  numberOfSpots: number;
+  average: number;
+  MRAverage: number;
+  controlLimitIChart: ControlLimits;
+  sigmaIChart: SigmaLevels;
+  controlLimitMRChart: ControlLimits;
 }

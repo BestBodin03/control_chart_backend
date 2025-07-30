@@ -6,7 +6,6 @@ export class CustomerProductService {
   constructor(private cpRepository: CustomerProductRepository) {}
 
   async bulkCreateUniqueCustomerProducts(cpDataArray: CPData[]): Promise<ICP[]> {
-    // Extract unique CP numbers
     const uniqueCPNos = [...new Set(cpDataArray.map(cp => cp.CPNo))];
     console.log(`Unique CP numbers to process: ${uniqueCPNos.length}`);
     
@@ -19,7 +18,7 @@ export class CustomerProductService {
     const uniqueNewCPData = newCPData.filter((cp, index, arr) => 
       arr.findIndex(item => item.CPNo === cp.CPNo) === index
     );
-    
+
     console.log(`New customer products to insert: ${uniqueNewCPData.length}`);
     
     if (uniqueNewCPData.length > 0) {

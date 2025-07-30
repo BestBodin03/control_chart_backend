@@ -246,6 +246,7 @@ private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): 
             
             // ✅ สร้าง Response ตามรูปแบบที่ต้องการ
             const result: IMRChartResult = {
+                numberOfSpots: dataForChart.total,
                 average: Number(average.toFixed(3)),
                 MRAverage: Number(mrAverage.toFixed(3)),
                 controlLimitIChart: {
