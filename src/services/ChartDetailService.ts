@@ -197,7 +197,7 @@ private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): 
             );
             
             if (validHardnessData.length < 2) {
-                throw new Error('Need at least 2 data points for I-MR Chart calculation');
+                throw new Error('ไม่สามารถแสดงแผนภูมิควบคุมได้ เนื่องจากข้อมูลน้อยกว่า 2 รายการ');
             }
             
             // ✅ Extract hardness values
@@ -210,15 +210,15 @@ private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): 
             console.log('Average:', average);
             
             // ✅ คำนวณ Moving Range และ MR Average
-            const movingRanges: number[] = [];
-            for (let i = 1; i < hardnessValues.length; i++) {
-                const mr = Math.abs(hardnessValues[i] - hardnessValues[i - 1]);
-                movingRanges.push(mr);
-            }
+            const movingRanges = hardnessValues
+                .slice(1)
+                .map((value, index) => +Math.abs(value - hardnessValues[index]).toFixed(3));
             
             const mrAverage = parseFloat((movingRanges.reduce((sum, value) => sum + value, 0) / movingRanges.length).toFixed(3));
             console.log('Moving Ranges:', movingRanges.length);
+            console.log('Moving Ranges List:', movingRanges);
             console.log('MR Average:', mrAverage);
+
             
             // ✅ คำนวณ Control Limits สำหรับ I-Chart
             const iChartUCL = parseFloat((average + (2.660 * mrAverage)).toFixed(3));
@@ -266,7 +266,8 @@ private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): 
                     CL: Number(mrAverage.toFixed(3)),
                     UCL: Number(mrChartUCL.toFixed(3)),
                     LCL: Number(mrChartLCL.toFixed(3))
-                }
+                },
+                mrChartSpots: movingRanges
             };
             
             console.log('I-MR Chart Calculation Results:', result);
@@ -274,7 +275,7 @@ private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): 
             
         } catch (error) {
             console.error('Calculate IMR error:', error);
-            throw error;
+            throw ('Calculate IMR error: founded less than 2 records');
         }
     }
 }

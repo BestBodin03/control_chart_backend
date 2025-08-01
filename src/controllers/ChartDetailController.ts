@@ -12,7 +12,7 @@ export class ChartDetailController {
             res.json(result);
         } catch (error) {
             console.error('❌ Error in fetching Data for Calculating:', error);
-            res.status(500).json({ error: 'Failed to get filtered data for calculation' });
+            res.status(500).json({ error: 'Calculate IMR Chart error: founded less than 2 records' });
         }
     }
 }

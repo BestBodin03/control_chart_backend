@@ -15,25 +15,32 @@ router.get('/test/process-master-data', async (req, res) => {
 
 router.get('/all-furnaces', async (req, res) => {
   try {
-    const service = furnaceService;
-    const result = await service.getAllFurnaces();
-    res.json(result);
+    await masterDataController.getAllFurnaces(req, res);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to get furnaces' });
+    res.json({ 
+      status: res.statusCode,
+      error: 'Failed to get furnace' });
   }
 });
 
 router.get('/all-material-no', async (req, res) => {
   try {
-    const service = customerProductService;
-    const result = await service.getAllCustomerProducts();
-    res.json(result);
+    await masterDataController.getCustomerProducts(req, res);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to get customer products' });
+    res.json({ 
+      status: res.statusCode,
+      error: 'Failed to get material No.' });
   }
 });
 
 router.get('/test/chart-details', async (req, res) => {
+  try{
+    await masterDataController.getAllChartDetails(req, res);
+  } catch (error) {
+    res.json({ 
+      status: res.statusCode,
+      error: 'Failed to get chart detail' });
+  }
   masterDataController.getAllChartDetails(req, res);
 });
 

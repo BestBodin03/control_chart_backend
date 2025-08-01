@@ -37,4 +37,9 @@ export interface IMRChartResult {
   controlLimitIChart: ControlLimits;
   sigmaIChart: SigmaLevels;
   controlLimitMRChart: ControlLimits;
+  mrChartSpots: number[];
+}
+
+export interface IMRChartSpots {
+  spotValue: number;
 }

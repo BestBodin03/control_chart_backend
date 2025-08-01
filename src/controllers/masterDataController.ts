@@ -3,6 +3,7 @@ import { ChartDetailService } from '../services/ChartDetailService';
 import { CustomerProductService } from '../services/CustomerProductService';
 import { FurnaceService } from '../services/FurnaceService';
 import { MasterDataService } from '../services/MasterDataService';
+import { ICP } from '../models/CustomerProduct';
 
 // ✅ Master Data Controller
 export class MasterDataController {
@@ -38,38 +39,35 @@ export class MasterDataController {
     }
   }
 
-  // Get all furnaces
   async getAllFurnaces(req: Request, res: Response): Promise<void> {
     try {
       const furnaces = await this.furnaceService.getAllFurnaces();
-      res.json({
-        status: true,
-        data: furnaces,
-        count: furnaces.length
+      res.status(200).json({
+        status: "success",
+        data: furnaces
       });
     } catch (error) {
       res.status(500).json({
-        status: false,
-        message: 'Failed to get furnaces',
-        error: error
+        status: "error",
+        data: [],
+        message: error
       });
     }
   }
 
-  // Get all customer products
-  async getAllCustomerProducts(req: Request, res: Response): Promise<void> {
+async getCustomerProducts(req: Request, res: Response): Promise<void> {
     try {
-      const customerProducts = await this.customerProductService.getAllCustomerProducts();
-      res.json({
-        status: true,
-        data: customerProducts,
-        count: customerProducts.length
+      const items = await this.customerProductService.getAllCustomerProducts();
+      
+      res.status(200).json({
+        status: "success",
+        data: items
       });
     } catch (error) {
       res.status(500).json({
-        status: false,
-        message: 'Failed to get customer products',
-        error: error
+        status: "error",
+        data: [],
+        message: error
       });
     }
   }
@@ -78,10 +76,14 @@ export class MasterDataController {
   async getAllChartDetails(req: Request, res: Response): Promise<void> {
     try {
       const chartDetails = await this.chartDetailService.getAllChartDetails();
-      res.json({ chartDetails});
+      res.status(200).json({
+        status: "success",
+        data: chartDetails
+      });
     } catch (error) {
-      res.status(500).json({
-        message: 'Failed to get chart details',
+      res.json({
+        status: res.statusCode,
+        data: [],
         error: error
       });
     }
