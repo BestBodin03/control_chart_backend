@@ -4,6 +4,7 @@ import { CustomerProductService } from '../services/CustomerProductService';
 import { FurnaceService } from '../services/FurnaceService';
 import { MasterDataService } from '../services/MasterDataService';
 import { ICP } from '../models/CustomerProduct';
+import { MasterApiRequest } from '../models/MasterApiResponse';
 
 // ✅ Master Data Controller
 export class MasterDataController {
@@ -11,13 +12,31 @@ export class MasterDataController {
     private masterDataService: MasterDataService,
     private furnaceService: FurnaceService,
     private customerProductService: CustomerProductService,
-    private chartDetailService: ChartDetailService
+    private chartDetailService: ChartDetailService,
   ) {}
 
+  async fetchDataFromQcReport(req: Request, res: Response): Promise<void> {
+        try {
+          const masterApiRequest: MasterApiRequest = req.body;
+          
+          const result = await this.masterDataService.getDataFromQcReport(masterApiRequest);
+          
+          res.status(200).json({
+            success: true,
+            data: result
+          });
+        } catch (error: any) {
+          res.status(400).json({
+            success: false,
+            message: error.message || 'Failed to get data from QC Report'
+          });
+        }
+  }
+
   // Process from API
-  async processFromAPI(req: Request, res: Response): Promise<void> {
+  async processFromAPI(req: Request, res: Response, test: MasterApiRequest): Promise<void> {
     try {
-      const results = await this.masterDataService.processFromAPI();
+      const results = await this.masterDataService.getDataFromQcReport(test);
       
       res.status(201).json({
         status: true,
@@ -41,6 +60,7 @@ export class MasterDataController {
 
   async getAllFurnaces(req: Request, res: Response): Promise<void> {
     try {
+      let qcReportRequest: MasterApiRequest = req.body;
       const furnaces = await this.furnaceService.getAllFurnaces();
       res.status(200).json({
         status: "success",
@@ -87,5 +107,10 @@ async getCustomerProducts(req: Request, res: Response): Promise<void> {
         error: error
       });
     }
+  }
+
+  async getDataFromQcReport(req: Request, res: Response): Promise<void> {
+    const test = await this.masterDataService.getDataFromQcReport(req.body);
+    console.log(test);
   }
 }

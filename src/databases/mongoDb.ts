@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
-dotenv.config(); 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/control_chart';
+dotenv.config({ path: '.env' });
 
+const mongoUrl = process.env.MONGO_URL as string;
 const connectMongoDB = async () => {
   try {
-    await mongoose.connect(MONGO_URI)
+    await mongoose.connect(mongoUrl)
     console.log('✅ Connected to MongoDB');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);

@@ -39,7 +39,7 @@ export interface ChartDetailData {
     hardnessAt01mmMean: number;
     CDE: {
       CDEX: number;
-      CDEY: number;
+      CDTX: number;
     };
     coreHardnessMean: number;
     compoundLayer: number;

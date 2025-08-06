@@ -6,8 +6,7 @@ const router = Router();
 // ✅ Create Setting Profile
 router.post('/settings', async (req, res) => {
   try {
-    const service = settingService;
-    const result = await service.createSettingProfile(req.body);
+    const result = await settingService.createSettingProfile(req.body);
     res.status(201).json({
       success: true,
       message: 'Setting created successfully',

@@ -9,7 +9,7 @@ export interface MasterApiResponse {
   surface_hardness: number;
   hardness_01mm: number;
   cde_x: number;
-  cde_y: number;
+  cdt_x: number;
   core_hardness: number;
   compound_layer: number;
   upper_spec: number;
@@ -17,3 +17,26 @@ export interface MasterApiResponse {
   target_spec: number;
   is_active: boolean;
 }
+
+export interface MasterApiRequest {
+  DB: string;
+  MATCP: string;
+  STARTyear: string;
+  STARTmonth: string;
+  STARTday: string;
+  ENDyear: string;
+  ENDmonth: string;
+  ENDday: string;
+}
+
+/*
+{
+    "DB":"",
+    "MATCP":"24006947",
+    "STARTyear":"2025",
+    "STARTmonth":"01",
+    "STARTday":"01",
+    "ENDyear":"2025",
+    "ENDmonth":"06",
+    "ENDday":"31"
+}*/
