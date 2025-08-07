@@ -1,17 +1,19 @@
 import { CPData, CustomerProductModel, ICP } from "../models/CustomerProduct";
 
 export class CustomerProductRepository {
-  async bulkCreate(cpData: CPData[]): Promise<ICP[]> {
-    try {
-      return await CustomerProductModel.insertMany(cpData, { ordered: false });
-    } catch (error: any) {
-      // Handle duplicate key errors but continue with unique records
-      if (error.code === 11000) {
-        console.log('Some customer products already exist, continuing...');
-        return error.insertedDocs || [];
+  async bulkCreate(data: CPData[]): Promise<ICP[]> {
+    const ops = data.map(item => ({
+      updateOne: {
+        filter: { CPNo: item.CPNo },
+        update: { $set: item },
+        upsert: true
       }
-      throw error;
-    }
+    }));
+    
+    await CustomerProductModel.bulkWrite(ops);
+    
+    const cpNos = data.map(d => d.CPNo);
+    return CustomerProductModel.find({ CPNo: { $in: cpNos } }).lean() as unknown as Promise<ICP[]>;
   }
 
   async findExistingCPNos(cpNos: string[]): Promise<string[]> {

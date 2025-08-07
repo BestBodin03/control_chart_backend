@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { masterDataService, furnaceService, customerProductService, chartDetailService, masterDataController } from "../../../utils/serviceLocator";
 import { MasterApiRequest } from "../../../models/MasterApiResponse";
+import { autoCompleteEndDate } from "../../../utils/masterDataFGEncoder";
 
 const router = Router();
 
@@ -17,35 +18,9 @@ POST
     "ENDday":"31"
 }
 */
-router.post('/test/process-master-data', async (req, res) => {
-  try {
-    const service = masterDataService;
-    
-    // ⭐ ใช้ข้อมูลจาก req.body พร้อม fallback
-    const masterReq: MasterApiRequest = {
-      DB: req.body.DB || "",
-      MATCP: req.body.MATCP || "",
-      STARTyear: req.body.STARTyear || "",
-      STARTmonth: req.body.STARTmonth || "",
-      STARTday: req.body.STARTday || "",
-      ENDyear: req.body.ENDyear || "",
-      ENDmonth: req.body.ENDmonth || "",
-      ENDday: req.body.ENDday || ""
-    };
 
-    const result = await service.getDataFromQcReport(masterReq);
-    res.json({
-      status: "success",
-      data: result
-    });
-  } catch (error) {
-    console.error('Router error:', error);
-    res.status(500).json({ 
-      status: "error",
-      message: 'Failed to process master data',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
+router.post('/test/process-master-data', async (req, res) => {
+  await masterDataController.processFromAPI(req, res);
 });
 
 router.get('/all-furnaces', async (req, res) => {

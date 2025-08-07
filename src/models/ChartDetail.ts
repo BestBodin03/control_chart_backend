@@ -2,7 +2,6 @@ import mongoose, { Document, Schema, model } from "mongoose";
 import { FurnaceValidation } from "./validations/FurnaceValidate";
 import { ChartDetailValidate } from "./validations/ChartDetailValidate";
 import { CustomerProductValidate } from "./validations/CustomerProductValidate";
-import z from "zod";
 
 export interface IChartDetail extends Document {
   CPNo: string;
@@ -15,13 +14,10 @@ export interface IChartDetail extends Document {
   };
   machanicDetail: {
     surfaceHardnessMean: number;
-    hardnessAt01mmMean: number;
     CDE: {
       CDEX: number;
-      CDEY: number;
+      CDTX: number;
     };
-    coreHardnessMean: number;
-    compoundLayer: number;
   };
 }
 
@@ -36,13 +32,10 @@ export interface ChartDetailData {
   };
   machanicDetail: {
     surfaceHardnessMean: number;
-    hardnessAt01mmMean: number;
     CDE: {
       CDEX: number;
       CDTX: number;
     };
-    coreHardnessMean: number;
-    compoundLayer: number;
   };
 }
 
@@ -57,13 +50,10 @@ const chartDetailSchema = new Schema<IChartDetail>({
   },
   machanicDetail: {
     surfaceHardnessMean: { type: Number, required: true },
-    hardnessAt01mmMean: { type: Number, required: true },
     CDE: {
       CDEX: { type: Number, required: true },
-      CDEY: { type: Number, required: true }
+      CDTX: { type: Number, required: true }
     },
-    coreHardnessMean: { type: Number, required: true },
-    compoundLayer: { type: Number, required: true }
   }
 }, { timestamps: true });
 

@@ -140,3 +140,26 @@ export class FurnaceCodeEncoder {
     };
   }
 }
+
+function getCurrentDateParts(): { year: string; month: string; day: string } {
+  const today = new Date();
+  const year = today.getFullYear().toString();
+  const month = (today.getMonth() + 1).toString().padStart(2, '0');
+  const day = today.getDate().toString().padStart(2, '0');
+  
+  return { year, month, day };
+}
+
+export function autoCompleteEndDate(
+  endYear?: string,
+  endMonth?: string,
+  endDay?: string
+): { ENDyear: string; ENDmonth: string; ENDday: string } {
+  const currentDate = getCurrentDateParts();
+  
+  return {
+    ENDyear: endYear || currentDate.year,
+    ENDmonth: endMonth || currentDate.month,
+    ENDday: endDay || currentDate.day
+  };
+}

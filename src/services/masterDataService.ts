@@ -22,17 +22,17 @@ export class MasterDataService {
   ) {}
   private helper = new MasterDataServiceHelper();
   
-  private getNestedValue = (obj: any, keys: string[]): number => {
-    try {
-      let value = obj;
-      for (const key of keys) {
-        value = value?.[key];
-      }
-      return parseFloat(value) || 0;
-    } catch (error) {
-      return 0;
-    }
-  };
+  // private getNestedValue = (obj: any, keys: string[]): number => {
+  //   try {
+  //     let value = obj;
+  //     for (const key of keys) {
+  //       value = value?.[key];
+  //     }
+  //     return parseFloat(value) || 0;
+  //   } catch (error) {
+  //     return 0;
+  //   }
+  // };
 
   // // ✅ Fetch data from API
   // private async fetchDataFromAPI(): Promise<MasterApiResponse[]> {
@@ -82,25 +82,30 @@ export class MasterDataService {
 
   // ✅ Map API data to collections
   private mapAPIDataToCollections(apiData: MasterApiResponse[]) {
+    // console.log("The response: ", apiData)
     return apiData.map(record => {
       const furnaceData: FurnaceData = {
         furnaceNo: record.furnace_number,
-        furnaceDescription: record.furnace_description,
+        furnaceDescription: record.furnace_description || "-",
         isDisplay: record.is_active,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      const cpData: CPData = {
-        CPNo: record.lot_number,
-        furnaceId: [],
-        specifications: {
-          upperSpecLimit: record.upper_spec,
-          lowerSpecLimit: record.lower_spec,
-          target: record.target_spec
-        },
-        isDisplay: record.is_active
-      };
+    const cpData: CPData = {
+      CPNo: record.lot_number || "N/A",
+      furnaceId: [], // จะ assign ทีหลัง
+      surfaceHardnessUSpec: record.surface_upper_spec || 0,
+      surfaceHardnessLSpec: record.surface_lower_spec || 0,
+      surfaceHardnessTarget: record.surface_target || 0,
+      cdeUSpec: record.cde_upper_spec || 0,
+      cdeLSpec: record.cde_lower_spec || 0,
+      cdeTarget: record.cde_target || 0,
+      cdtUSpec: record.cdt_upper_spec || 0,
+      cdtLSpec: record.cdt_lower_spec || 0,
+      cdtTarget: record.cdt_target || 0,
+      isDisplay: true
+    };
 
       const chartDetailData: ChartDetailData = {
         CPNo: record.lot_number,
@@ -112,14 +117,11 @@ export class MasterDataService {
           collectedDate: record.collected_date
         },
         machanicDetail: {
-          surfaceHardnessMean: record.surface_hardness,
-          hardnessAt01mmMean: record.hardness_01mm,
+          surfaceHardnessMean: record.surface_hardness || 0,
           CDE: {
-            CDEX: record.cde_x,
-            CDTX: record.cdt_x
+            CDEX: record.cde_x || 0,
+            CDTX: record.cdt_x || 0,
           },
-          coreHardnessMean: record.core_hardness,
-          compoundLayer: record.compound_layer
         }
       };
 
@@ -127,8 +129,7 @@ export class MasterDataService {
     });
   }
 
-  // ✅ Main processing function
-  public async processFromAPI(req: MasterApiRequest): Promise<{
+    async processFromAPI(req: MasterApiRequest): Promise<{
     furnaces: IFurnace[];
     customerProducts: ICP[];
     chartDetails: IChartDetail[];
@@ -136,7 +137,7 @@ export class MasterDataService {
     try {
       console.log('=== STARTING MASTER DATA PROCESSING ===');
       
-      // 1. GET data from API
+      // 1. GET data from API using getDataFromQcReport
       const apiData = await this.getDataFromQcReport(req);
       console.log(`✅ Retrieved ${apiData.length} records from API`);
 
@@ -181,70 +182,78 @@ export class MasterDataService {
     }
   }
 
-  async getDataFromQcReport(req: MasterApiRequest): Promise<any> {
-    const masterApi = process.env.QC_REPORT_API as string;
-    
-    try {
-      const response = await fetch(masterApi, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(req)
-      });
+async getDataFromQcReport(req: MasterApiRequest): Promise<any> {
+  const masterApi = process.env.QC_REPORT_API as string;
+  
+  try {
+    const response = await fetch(masterApi, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(req)
+    });
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} - ${response.statusText}`);
-      }
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+    }
 
     const data: any = await response.json();
-    console.log('itemobject:', data[0].itemobject);
-
-    // ⭐ แก้จาก data.itemobject เป็น data[0].itemobject
-    const invertedIndex = this.helper.createInvertedIndex(data[0].itemobject);
     const targetNames = ["Surface Hardness", "Total Case Depth (Core +50)", "Hardness Case Depth (CDE@ 513 Hmv)"];
 
-  // ⭐ Debug แต่ละ target ว่าผ่าน getBTWValuesOptimized ได้ไหม
-  targetNames.forEach(targetName => {
-    const btwResult = this.helper.getBTWValuesOptimized(data[0], invertedIndex, targetName)
-    // console.log('BTW Result:', btwResult);
-    
-    if (btwResult) {
-      const transformed = this.helper.transformToSpecFormat(btwResult);
-      // console.log('Transformed:', transformed);
-    }
-  });
-
-  // ⭐ หรือ debug ใน transformMultipleToSpecFormat function
-  // console.log('\n=== Full Transform Process ===');
-  const specResults = this.helper.transformMultipleToSpecFormat(data[0], invertedIndex, targetNames);
-  const meanResults = this.helper.getAttributeMeanData(data[0], invertedIndex, targetNames);
-
-  const specMap = this.helper.createLookupMap(specResults);
-  const meanMap = this.helper.createLookupMap(meanResults);
-  
-  // console.log('Final Spec Results:', specResults);
-
-    // // สร้าง lookup map
-    // const specMap = specResults.reduce((acc, spec) => {
-    //   acc[spec!.name] = spec;
-    //   return acc;
-    // }, {} as Record<string, any>);
-
-    // // console.log('Inverted Index:', invertedIndex); // ⭐ Debug log
-    // // console.log('Spec Results:', specResults); // ⭐ Debug log
-    // // console.log('Spec Map:', specMap); // ⭐ Debug log
-
-    const mappedData: MasterApiResponse[] = data.map((record: any) => {
+    const mappedData: MasterApiResponse[] = data.map((record: any, index: number) => {
       const fgCode = record.FG_CHARG || '';
       const fgEncoded = FurnaceCodeEncoder.encode(1, new Date(), fgCode);
 
-      const surfaceHardnessSpec = specMap["Surface Hardness"];
-      const surfaceHardnessMean = meanMap["Surface Hardness"];
-      const cdtSpec = specMap["Total Case Depth (Core +50)"];
-      const cdtMean = meanMap["Total Case Depth (Core +50)"];
-      const cdeSpec = specMap["Hardness Case Depth (CDE@ 513 Hmv)"];
-      const cdeMean = meanMap["Hardness Case Depth (CDE@ 513 Hmv)"];
+      // สร้าง invertedIndex สำหรับ record นี้
+      const recordInvertedIndex = this.helper.createInvertedIndex(record.itemobject);
+      
+      // คำนวณ spec และ mean สำหรับ record นี้
+      const recordSpecResults = this.helper.transformMultipleToSpecFormat([record], recordInvertedIndex, targetNames);
+      const recordMeanResults = this.helper.getAttributeMeanData([record], recordInvertedIndex, targetNames);
+
+      console.log(`\n📊 Record ${index} results:`);
+      console.log('📊 Spec results found:', recordSpecResults.length);
+      console.log('📊 Mean results found:', recordMeanResults.length);
+      
+      // List available data
+      recordMeanResults.forEach(result => {
+        console.log(`  ✅ Mean data: ${result.name}`);
+      });
+
+      // หา mean สำหรับ record นี้โดยเฉพาะ
+      const surfaceHardnessMean = recordMeanResults.find((m: any) => 
+        m.name === "Surface Hardness");
+      const cdtMean = recordMeanResults.find((m: any) => 
+        m.name === "Total Case Depth (Core +50)");
+      const cdeMean = recordMeanResults.find((m: any) => 
+        m.name === "Hardness Case Depth (CDE@ 513 Hmv)");
+
+      // หา spec สำหรับ record นี้
+      const surfaceHardnessSpec = recordSpecResults.find((s: any) => 
+        s.name === "Surface Hardness"
+      );
+      const cdtSpec = recordSpecResults.find((s: any) => 
+        s.name === "Total Case Depth (Core +50)"
+      );
+      const cdeSpec = recordSpecResults.find((s: any) => 
+        s.name === "Hardness Case Depth (CDE@ 513 Hmv)"
+      );
+
+      console.log(`Record ${index} data found:`);
+      console.log(`  - Surface Hardness: ${!!surfaceHardnessMean ? '✅' : '❌'}`);
+      console.log(`  - CDT: ${!!cdtMean ? '✅' : '❌'}`);
+      console.log(`  - CDE: ${!!cdeMean ? '✅' : '❌'}`);
+      
+      if (surfaceHardnessMean) {
+        console.log(`  - Surface hardness value:`, surfaceHardnessMean.data_ans);
+      }
+      if (cdtMean) {
+        console.log(`  - CDT value:`, cdtMean.data_ans?.x);
+      }
+      if (cdeMean) {
+        console.log(`  - CDE value:`, cdeMean.data_ans?.x);
+      }
     
       return {
         lot_number: record.MATCP || '',
@@ -254,9 +263,8 @@ export class MasterDataService {
         part_name: record.PARTNAME || '',
         collected_date: fgEncoded.masterCollectedDate,
         surface_hardness: surfaceHardnessMean?.data_ans || 0,
-        cde_x: cdeMean?.data_ans?.x|| 0,
-        cdt_x: cdtMean?.data_ans?.x|| 0,
-        // core_hardness: record["Core Hardness(ALL-MEAN)"] || 0,
+        cde_x: cdeMean?.data_ans?.x || 0,
+        cdt_x: cdtMean?.data_ans?.x || 0,
         surface_upper_spec: surfaceHardnessSpec?.upper_spec || 0,
         surface_lower_spec: surfaceHardnessSpec?.lower_spec || 0,
         surface_target: surfaceHardnessSpec?.target || 0,
@@ -270,13 +278,15 @@ export class MasterDataService {
       };
     });
 
+    console.log(mappedData);
     return mappedData;
 
-    } catch (error) {
-      console.error('Failed to fetch from Master API:', error);
-      throw error;
-    }
+  } catch (error) {
+    console.error('Failed to fetch from Master API:', error);
+    throw error;
   }
+}
+
   async getAutomateDataFromQcReport(req: MasterApiRequest): Promise<void> {
   }
 }

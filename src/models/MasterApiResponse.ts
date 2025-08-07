@@ -12,9 +12,15 @@ export interface MasterApiResponse {
   cdt_x: number;
   core_hardness: number;
   compound_layer: number;
-  upper_spec: number;
-  lower_spec: number;
-  target_spec: number;
+  surface_upper_spec: number;
+  surface_lower_spec: number;
+  surface_target: number;
+  cde_upper_spec: number;
+  cde_lower_spec: number;
+  cde_target: number;
+  cdt_upper_spec: number;
+  cdt_lower_spec: number;
+  cdt_target: number;
   is_active: boolean;
 }
 

@@ -1,17 +1,19 @@
 import { ChartDetailData, IChartDetail, ChartDetailModel } from "../models/ChartDetail";
 
 export class ChartDetailRepository {
-  async bulkCreate(chartDetailData: ChartDetailData[]): Promise<IChartDetail[]> {
-    try {
-      return await ChartDetailModel.insertMany(chartDetailData, { ordered: false });
-    } catch (error: any) {
-      // Handle duplicate key errors but continue with unique records
-      if (error.code === 11000) {
-        console.log('Some chart details already exist, continuing...');
-        return error.insertedDocs || [];
+  async bulkCreate(data: ChartDetailData[]): Promise<IChartDetail[]> {
+    const ops = data.map(item => ({
+      updateOne: {
+        filter: { FGNo: item.FGNo },
+        update: { $set: item },
+        upsert: true
       }
-      throw error;
-    }
+    }));
+    
+    await ChartDetailModel.bulkWrite(ops);
+    
+    const fgNumbers = data.map(d => d.FGNo);
+    return ChartDetailModel.find({ FGNo: { $in: fgNumbers } }).lean() as unknown as Promise<IChartDetail[]>;
   }
 
   async findExistingFGNos(fgNos: string[]): Promise<string[]> {

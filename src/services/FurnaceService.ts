@@ -13,15 +13,12 @@ export class FurnaceService {
   constructor(private furnaceRepository: FurnaceRepository) {}
 
   async bulkCreateUniqueFurnaces(furnaceDataArray: FurnaceData[]): Promise<IFurnace[]> {
-    // Extract unique furnace numbers
     const uniqueFurnaceNos = [...new Set(furnaceDataArray.map(f => f.furnaceNo))];
     console.log(`Unique furnace numbers to process: ${uniqueFurnaceNos.length}`);
     
-    // Check existing furnaces
     const existingFurnaceNos = await this.furnaceRepository.findExistingFurnaceNos(uniqueFurnaceNos);
     const existingSet = new Set(existingFurnaceNos);
     
-    // Filter new furnaces only
     const newFurnaceData = furnaceDataArray.filter(f => !existingSet.has(f.furnaceNo));
     const uniqueNewFurnaceData = newFurnaceData.filter((f, index, arr) => 
       arr.findIndex(item => item.furnaceNo === f.furnaceNo) === index
@@ -32,7 +29,6 @@ export class FurnaceService {
     if (uniqueNewFurnaceData.length > 0) {
       return await this.furnaceRepository.bulkCreate(uniqueNewFurnaceData);
     }
-    
     return [];
   }
 

@@ -2,17 +2,19 @@ import { FurnaceData, FurnaceModel, IFurnace } from "../models/Furnace";
 
 // ✅ Furnace Repository
 export class FurnaceRepository {
-  async bulkCreate(furnaceData: FurnaceData[]): Promise<IFurnace[]> {
-    try {
-      return await FurnaceModel.insertMany(furnaceData, { ordered: false });
-    } catch (error: any) {
-      // Handle duplicate key errors but continue with unique records
-      if (error.code === 11000) {
-        console.log('Some furnaces already exist, continuing...');
-        return error.insertedDocs || [];
+  async bulkCreate(data: FurnaceData[]): Promise<IFurnace[]> {
+    const ops = data.map(item => ({
+      updateOne: {
+        filter: { furnaceNo: item.furnaceNo },
+        update: { $set: item },
+        upsert: true
       }
-      throw error;
-    }
+    }));
+    
+    await FurnaceModel.bulkWrite(ops);
+    
+    const furnaceNos = data.map(d => d.furnaceNo);
+    return FurnaceModel.find({ furnaceNo: { $in: furnaceNos } }).lean() as unknown as Promise<IFurnace[]>;
   }
 
   async findExistingFurnaceNos(furnaceNos: number[]): Promise<number[]> {

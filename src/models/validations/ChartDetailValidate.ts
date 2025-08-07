@@ -12,12 +12,9 @@ export const ChartDetailValidate = z.object({
   }),
   machanicDetail: z.object({
     surfaceHardnessMean: z.number(),
-    hardnessAt01mmMean: z.number(),
     CDE: z.object({
       CDEX: z.number(),
-      CDEY: z.number()
+      CDTX: z.number()
     }),
-    coreHardnessMean: z.number(),
-    compoundLayer: z.number()
   })
 });

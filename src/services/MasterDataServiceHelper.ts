@@ -5,7 +5,7 @@ export class MasterDataServiceHelper {
     const invertedIndex: Record<string, string> = {};
     
     if (!itemobject || typeof itemobject !== 'object') {
-        console.warn('itemobject is null, undefined, or not an object:', itemobject);
+        // console.warn('itemobject is null, undefined, or not an object:', itemobject);
         return {};
     }
     
@@ -84,69 +84,184 @@ export class MasterDataServiceHelper {
         .filter(result => result.data !== null);
     }
 
-    transformMultipleToSpecFormat(
-    data: any,
-    invertedIndex: Record<string, string>,
-    targetNames: string[]
-    ) {
-    return targetNames
-        .map(targetName => this.getBTWValuesOptimized(data, invertedIndex, targetName))
-        .filter(btwData => btwData !== null)
-        .map(btwData => this.transformToSpecFormat(btwData));
-    }
-
-getAttributeMeanData(
+  transformMultipleToSpecFormat(
   data: any,
   invertedIndex: Record<string, string>,
   targetNames: string[]
-) {
-  console.log('🔍 Available data keys:', Object.keys(data));
-  console.log('🔍 Inverted Index:', invertedIndex);
-  
-  return targetNames
-    .map(targetName => {
-      const itemCode = invertedIndex[targetName];
-      console.log(`🔍 ${targetName} -> itemCode: ${itemCode}`);
+  ) {
+  console.log('🔍 transformMultipleToSpecFormat processing...');
+  if (Array.isArray(data)) {
+    return data.flatMap((record, recordIndex) => {
+      console.log(`\n🔍 Processing spec for record ${recordIndex}:`);
       
-      if (!itemCode) {
-        console.log(`❌ No itemCode found for: ${targetName}`);
-        return null;
-      }
-
-      const itemData = data[itemCode];
-      console.log(`🔍 itemData exists for ${itemCode}:`, !!itemData);
-      
-      if (!itemData) {
-        console.log(`❌ No itemData found for itemCode: ${itemCode}`);
-        console.log(`🔍 Available keys in data:`, Object.keys(data));
-        return null;
-      }
-      
-      console.log(`🔍 data_ans exists for ${itemCode}:`, !!itemData.data_ans);
-      console.log(`🔍 itemData structure:`, Object.keys(itemData));
-      
-      if (!itemData.data_ans) {
-        console.log(`❌ No data_ans found for: ${itemCode}`);
-        return null;
-      }
-
-      return {
-        itemCode,
-        name: targetName,
-        data_ans: itemData.data_ans
-      };
-    })
-    .filter((result): result is { itemCode: string; name: string; data_ans: any } => 
-      result !== null
-    );
+      return targetNames
+        .map(targetName => {
+          console.log(`🔍 Getting spec for: ${targetName}`);
+          
+          // ใช้ getBTWValuesOptimized แทน
+          const btwResult = this.getBTWValuesOptimized(record, invertedIndex, targetName);
+          
+          if (!btwResult) {
+            console.log(`⚠️ No BTW result for: ${targetName}`);
+            return null;
+          }
+          
+          // ใช้ transformToSpecFormat เพื่อแปลง BTW เป็น spec format
+          const specData = this.transformToSpecFormat(btwResult);
+          
+          if (!specData) {
+            console.log(`⚠️ No spec data for: ${targetName}`);
+            return null;
+          }
+          
+          console.log(`✅ Found spec for ${targetName}:`, {
+            upper_spec: specData.upper_spec,
+            lower_spec: specData.lower_spec,
+            target: specData.target
+          });
+          
+          return {
+            recordIndex,
+            itemCode: specData.itemCode,
+            name: targetName,
+            upper_spec: specData.upper_spec || 0,
+            lower_spec: specData.lower_spec || 0,
+            target: specData.target || 0
+          };
+        })
+        .filter(result => result !== null);
+    });
+  } else {
+    // Single record processing
+    console.log('🔍 Processing single record for spec');
+    return targetNames
+      .map(targetName => {
+        console.log(`🔍 Getting spec for: ${targetName}`);
+        
+        const btwResult = this.getBTWValuesOptimized(data, invertedIndex, targetName);
+        
+        if (!btwResult) {
+          console.log(`⚠️ No BTW result for: ${targetName}`);
+          return null;
+        }
+        
+        const specData = this.transformToSpecFormat(btwResult);
+        
+        if (!specData) {
+          console.log(`⚠️ No spec data for: ${targetName}`);
+          return null;
+        }
+        
+        console.log(`✅ Found spec for ${targetName}:`, {
+          upper_spec: specData.upper_spec,
+          lower_spec: specData.lower_spec,
+          target: specData.target
+        });
+        
+        return {
+          itemCode: specData.itemCode,
+          name: targetName,
+          upper_spec: specData.upper_spec || 0,
+          lower_spec: specData.lower_spec || 0,
+          target: specData.target || 0
+        };
+      })
+      .filter(result => result !== null);
+  }
 }
 
-    createLookupMap<T extends { name: string }>(results: (T | null)[]): Record<string, T> {
-    return results
-        .filter((item): item is T => item !== null) // Type guard
-        .reduce((acc, item) => {
-        acc[item.name] = item;
-        return acc;
-        }, {} as Record<string, T>);
+  // แก้ไข getAttributeMeanData ให้ handle missing data
+  getAttributeMeanData(
+    data: any,
+    invertedIndex: Record<string, string>,
+    targetNames: string[]
+  ) {
+    console.log('🔍 getAttributeMeanData processing...');
+    
+    // ถ้า data เป็น array ให้ process แต่ละ record
+    if (Array.isArray(data)) {
+      return data.flatMap((record, recordIndex) => {
+        console.log(`\n🔍 Processing record ${recordIndex}:`);
+        
+        return targetNames
+          .map(targetName => {
+            const itemCode = invertedIndex[targetName];
+            console.log(`🔍 ${targetName} -> itemCode: ${itemCode}`);
+            
+            if (!itemCode) {
+              console.log(`⚠️ No itemCode found for: ${targetName} (skipping - optional data)`);
+              return null; // Return null แทน throw error
+            }
+            
+            // ใช้ record.itemobject แทน data โดยตรง
+            const itemData = record[itemCode];
+            console.log(`🔍 itemData exists for ${itemCode}:`, !!itemData);
+            
+            if (!itemData) {
+              console.log(`⚠️ No itemData found for itemCode: ${itemCode} (skipping - optional data)`);
+              return null; // Return null แทน throw error
+            }
+            
+            console.log(`🔍 data_ans exists for ${itemCode}:`, !!itemData.data_ans);
+            
+            if (!itemData.data_ans) {
+              console.log(`⚠️ No data_ans found for: ${itemCode} (skipping - optional data)`);
+              return null; // Return null แทน throw error
+            }
+            
+            console.log(`✅ Found data for ${targetName}:`, itemData.data_ans);
+            
+            return {
+              recordIndex,
+              itemCode,
+              name: targetName,
+              data_ans: itemData.data_ans
+            };
+          })
+          .filter((result): result is { 
+            recordIndex: number; 
+            itemCode: string; 
+            name: string; 
+            data_ans: any 
+          } => result !== null);
+      });
+    } 
+    
+    // ถ้า data เป็น single record
+    else {
+      console.log('🔍 Processing single record');
+      return targetNames
+        .map(targetName => {
+          const itemCode = invertedIndex[targetName];
+          
+          if (!itemCode) {
+            console.log(`⚠️ No itemCode found for: ${targetName} (skipping)`);
+            return null;
+          }
+          
+          const itemData = data.itemobject?.[itemCode];
+          
+          if (!itemData || !itemData.data_ans) {
+            console.log(`⚠️ No data found for: ${itemCode} (skipping)`);
+            return null;
+          }
+          
+          return {
+            itemCode,
+            name: targetName,
+            data_ans: itemData.data_ans
+          };
+        })
+        .filter(result => result !== null);
     }
+  }
+
+  createLookupMap<T extends { name: string }>(results: (T | null)[]): Record<string, T> {
+  return results
+      .filter((item): item is T => item !== null) // Type guard
+      .reduce((acc, item) => {
+      acc[item.name] = item;
+      return acc;
+      }, {} as Record<string, T>);
+  }
 }
