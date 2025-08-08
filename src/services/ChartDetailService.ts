@@ -74,32 +74,56 @@ export class ChartDetailService {
         }
     }
 
-async handleDynamicFiltering(filters?: IChartDetailsFiltering): Promise<FilteredResult<IChartDetail>> {
-    const allData = await this.chartDetailRepository.findAll();
-    
-    if (!filters) {
+    async handleDynamicFiltering(filters?: IChartDetailsFiltering): Promise<FilteredResult<IChartDetail> & { 
+        summary: Array<{ furnaceNo: number; matNo: string; partName: string; count: number }> 
+    }> {
+        const allData = await this.chartDetailRepository.findAll();
+        
+        if (!filters) {
+            const summary = Object.values(
+                allData.reduce((acc, item) => {
+                    const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
+                    acc[key] = acc[key] ? 
+                        { ...acc[key], count: acc[key].count + 1 } : 
+                        { furnaceNo: item.chartGeneralDetail.furnaceNo, matNo: item.CPNo, partName: item.chartGeneralDetail.partName, count: 1 };
+                    return acc;
+                }, {} as Record<string, any>)
+            ).sort((a: any, b: any) => a.furnaceNo - b.furnaceNo || a.matNo.localeCompare(b.matNo));
+            
+            return {
+                data: allData,
+                total: allData.length,
+                filters: filters || {} as IChartDetailsFiltering,
+                summary
+            };
+        }
+
+        let filteredData = [...allData];
+
+        // Apply filters one by one
+        Object.entries(filters).forEach(([key, value]) => {
+            if (this.validateApplyFilter(key, value)) {
+                filteredData = this.applyFilter(filteredData, key, value);
+            }
+        });
+
+        const summary = Object.values(
+            filteredData.reduce((acc, item) => {
+                const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
+                acc[key] = acc[key] ? 
+                    { ...acc[key], count: acc[key].count + 1 } : 
+                    { furnaceNo: item.chartGeneralDetail.furnaceNo, matNo: item.CPNo, partName: item.chartGeneralDetail.partName, count: 1 };
+                return acc;
+            }, {} as Record<string, any>)
+        ).sort((a: any, b: any) => a.furnaceNo - b.furnaceNo || a.matNo.localeCompare(b.matNo));
+        
         return {
-            data: allData,
-            total: allData.length,
-            filters: filters || {} as IChartDetailsFiltering
+            data: filteredData,
+            total: filteredData.length,
+            filters,
+            summary
         };
     }
-
-    let filteredData = [...allData];
-
-    // Apply filters one by one
-    Object.entries(filters).forEach(([key, value]) => {
-        if (this.validateApplyFilter(key, value)) {
-            filteredData = this.applyFilter(filteredData, key, value);
-        }
-    });
-    
-    return {
-        data: filteredData,
-        total: filteredData.length,
-        filters
-    };
-}
 
 private validateApplyFilter(key: string, value: any): boolean {
     if (value === undefined || value === null || value === '') {

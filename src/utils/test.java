@@ -218,3 +218,8 @@ export {
   rawQuery, 
   aggregationPipeline 
 };
+
+APP_DEBUG=
+MONGO_URL=
+MONGO_URL_MASTER=
+QC_REPORT_API=
