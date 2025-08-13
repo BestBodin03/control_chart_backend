@@ -1,40 +1,41 @@
 import { Request, Response } from 'express';
-import { ChartDetailService } from '../services/ChartDetailService';
-import { CustomerProductService } from '../services/CustomerProductService';
-import { FurnaceService } from '../services/FurnaceService';
-import { MasterDataService } from '../services/MasterDataService';
-import { ICP } from '../models/CustomerProduct';
-import { MasterApiRequest } from '../models/MasterApiResponse';
-import { autoCompleteEndDate } from '../utils/masterDataFGEncoder';
+import { ChartDetailService } from '../services/chartDetailService';
+import { CustomerProductService } from '../services/customerProductService';
+import { FurnaceService } from '../services/furnaceService';
+import { MasterDataService } from '../services/masterDataService';
+import { MasterApiRequest } from '../models/masterApiResponse';
+import { autoCompleteEndDate } from '../utils/masterDataFgEncoder';
+import { any } from 'zod';
 
-// ✅ Master Data Controller
 export class MasterDataController {
   constructor(
     private masterDataService: MasterDataService,
-    private furnaceService: FurnaceService,
-    private customerProductService: CustomerProductService,
-    private chartDetailService: ChartDetailService,
   ) {}
 
   async fetchDataFromQcReport(req: Request, res: Response): Promise<void> {
-        try {
-          const masterApiRequest: MasterApiRequest = req.body;
-          
-          const result = await this.masterDataService.getDataFromQcReport(masterApiRequest);
-          
-          res.status(200).json({
-            success: true,
-            data: result
-          });
-        } catch (error: any) {
-          res.status(400).json({
-            success: false,
-            message: error.message || 'Failed to get data from QC Report'
-          });
+    try {
+      const masterApiRequest: MasterApiRequest = req.body;
+      
+      const result = await this.masterDataService.getDataFromQcReport(masterApiRequest);
+
+      res.json({
+        status: "success",
+        statusCode: res.statusCode,
+        data: result
+      });
+    } catch (e: any) {
+      res.json({
+        status: "error",
+        statusCode: res.statusCode,
+        error: {
+          message: e.message,
+          path: req.originalUrl,
+          timeStamp: Date.now()
         }
+      });
+    }
   }
 
-  // Process from API
   async processFromAPI(req: Request, res: Response): Promise<any> {
     try {
       
@@ -53,14 +54,11 @@ export class MasterDataController {
         ...endDates
       };
 
-      // This will call getDataFromQcReport internally and then process to database
       const result = await this.masterDataService.processFromAPI(masterReq);
-      
-      if (res.headersSent) return;
       
       return res.json({
         status: "success",
-        message: "Data processed and saved to database successfully",
+        statusCode: res.statusCode,
         summary: {
           furnaces: result.furnaces.length,
           customerProducts: result.customerProducts.length,
@@ -69,82 +67,33 @@ export class MasterDataController {
         data: result
       });
       
-    } catch (error) {
-      console.error('Router error:', error);
-      
-      if (res.headersSent) return;
-      
-      // Handle specific itemCode errors gracefully
-      if (error instanceof Error && error.message.includes('No itemCode found')) {
-        return res.status(400).json({ 
-          status: "error",
-          message: 'Item mapping error - data processing stopped',
-          error: error.message,
-          suggestion: 'Please check if the item name exists in your mapping configuration'
-        });
-      }
-      
-      return res.status(500).json({ 
-        status: "error",
-        message: 'Failed to process master data',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  }
-
-  async getAllFurnaces(req: Request, res: Response): Promise<void> {
-    try {
-      let qcReportRequest: MasterApiRequest = req.body;
-      const furnaces = await this.furnaceService.getAllFurnaces();
-      res.status(200).json({
-        status: "success",
-        data: furnaces
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: "error",
-        data: [],
-        message: error
-      });
-    }
-  }
-
-async getCustomerProducts(req: Request, res: Response): Promise<void> {
-    try {
-      const items = await this.customerProductService.getAllCustomerProducts();
-      
-      res.status(200).json({
-        status: "success",
-        data: items
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: "error",
-        data: [],
-        message: error
-      });
-    }
-  }
-
-  // Get all chart details
-  async getAllChartDetails(req: Request, res: Response): Promise<void> {
-    try {
-      const chartDetails = await this.chartDetailService.getAllChartDetails();
-      res.status(200).json({
-        status: "success",
-        data: chartDetails
-      });
-    } catch (error) {
+    } catch (e: any) {
       res.json({
-        status: res.statusCode,
-        data: [],
-        error: error
+        status: "error",
+        statusCode: res.statusCode,
+        error: {
+          message: e.message,
+          path: req.originalUrl,
+          timeStamp: Date.now()
+        }
       });
     }
   }
 
   async getDataFromQcReport(req: Request, res: Response): Promise<void> {
-    const test = await this.masterDataService.getDataFromQcReport(req.body);
-    console.log(test);
+    try {
+      await this.masterDataService.getDataFromQcReport(req.body);
+
+    } catch (e: any) {
+      res.json({
+        status: "error",
+        statusCode: res.statusCode,
+        error: {
+          message: e.message,
+          path: req.originalUrl,
+          timeStamp: Date.now()
+        }
+      });
+    }
   }
 }

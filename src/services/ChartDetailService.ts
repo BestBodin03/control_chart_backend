@@ -1,15 +1,16 @@
-import { ChartDetailData, IChartDetail } from "../models/ChartDetail";
-import { IChartDetailsFiltering, FilteredResult, IMRChartResult } from "../models/ChartDetailFiltering";
-import { ChartDetailRepository } from "../repositories/ChartDetailRepo";
+import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
+import { ChartDetailsFiltering, FilteredResult, MRChartResult } from "../models/chartDetailFiltering";
 import { Router, Request, Response } from "express";
 import { chartDetailController } from "../utils/serviceLocator";
-import { IPeriodFilter } from "../utils/dataPartitionwithPeriod";
+import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
+import { ChartDetailRepository } from "../repositories/chartDetailRepo";
+import { any } from "zod";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {
   constructor(private chartDetailRepository: ChartDetailRepository) {}
 
-  async bulkCreateUniqueChartDetails(chartDetailDataArray: ChartDetailData[]): Promise<IChartDetail[]> {
+  async bulkCreateUniqueChartDetails(chartDetailDataArray: ChartDetailData[]): Promise<ChartDetail[]> {
     // Extract unique FG numbers
     const uniqueFGNos = [...new Set(chartDetailDataArray.map(cd => cd.FGNo))];
     console.log(`Unique FG numbers to process: ${uniqueFGNos.length}`);
@@ -33,13 +34,13 @@ export class ChartDetailService {
     return [];
   }
 
-  async getAllChartDetails(): Promise<IChartDetail[]> {
+  async getAllChartDetails(): Promise<ChartDetail[]> {
     return await this.chartDetailRepository.findAll();
   }
 
-    private parseFiltersFromRequest(req: Request): IChartDetailsFiltering | undefined {
+    private parseFiltersFromRequest(req: Request): ChartDetailsFiltering | undefined {
         try {
-            const filters: IChartDetailsFiltering = {
+            const filters: ChartDetailsFiltering = {
                 period: {
                 startDate: req.query.startDate ? JSON.parse(req.query.startDate as string) : undefined,
                 endDate: req.query.endDate ? JSON.parse(req.query.endDate as string) : undefined,
@@ -64,7 +65,7 @@ export class ChartDetailService {
     }
 
     // ✅ Method สำหรับ Controller เรียกใช้
-    async getFilteredData(req: Request): Promise<FilteredResult<IChartDetail>> {
+    async getFilteredData(req: Request): Promise<FilteredResult<ChartDetail>> {
         try {
             const filters = this.parseFiltersFromRequest(req);
             return await this.handleDynamicFiltering(filters);
@@ -74,26 +75,35 @@ export class ChartDetailService {
         }
     }
 
-    async handleDynamicFiltering(filters?: IChartDetailsFiltering): Promise<FilteredResult<IChartDetail> & { 
+    async handleDynamicFiltering(filters?: ChartDetailsFiltering): Promise<FilteredResult<ChartDetail> & { 
         summary: Array<{ furnaceNo: number; matNo: string; partName: string; count: number }> 
     }> {
         const allData = await this.chartDetailRepository.findAll();
         
         if (!filters) {
-            const summary = Object.values(
-                allData.reduce((acc, item) => {
-                    const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
-                    acc[key] = acc[key] ? 
-                        { ...acc[key], count: acc[key].count + 1 } : 
-                        { furnaceNo: item.chartGeneralDetail.furnaceNo, matNo: item.CPNo, partName: item.chartGeneralDetail.partName, count: 1 };
-                    return acc;
-                }, {} as Record<string, any>)
-            ).sort((a: any, b: any) => a.furnaceNo - b.furnaceNo || a.matNo.localeCompare(b.matNo));
+        const summary = Object.values(
+        allData.reduce((acc, item) => {
+            const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
+            acc[key] = acc[key]
+            ? { ...acc[key], count: acc[key].count + 1 }
+            : {
+                furnaceNo: item.chartGeneralDetail.furnaceNo,
+                matNo: item.CPNo,
+                partName: item.chartGeneralDetail.partName,
+                count: 1
+                };
+            return acc;
+        }, {} as Record<string, any>)
+        )
+
+            summary.sort((a: any, b:any) => b.count - a.count)
+
+            // ).sort((a: any, b: any) => a.furnaceNo - b.furnaceNo || a.matNo.localeCompare(b.matNo));
             
             return {
                 data: allData,
                 total: allData.length,
-                filters: filters || {} as IChartDetailsFiltering,
+                filters: filters || {} as ChartDetailsFiltering,
                 summary
             };
         }
@@ -112,10 +122,11 @@ export class ChartDetailService {
                 const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
                 acc[key] = acc[key] ? 
                     { ...acc[key], count: acc[key].count + 1 } : 
-                    { furnaceNo: item.chartGeneralDetail.furnaceNo, matNo: item.CPNo, partName: item.chartGeneralDetail.partName, count: 1 };
+                    { furnaceNo: item.chartGeneralDetail.furnaceNo,
+                     matNo: item.CPNo, partName: item.chartGeneralDetail.partName, count: 1 };
                 return acc;
             }, {} as Record<string, any>)
-        ).sort((a: any, b: any) => a.furnaceNo - b.furnaceNo || a.matNo.localeCompare(b.matNo));
+        ).sort((a: any, b: any) => b.count - a.count);
         
         return {
             data: filteredData,
@@ -139,10 +150,10 @@ private validateApplyFilter(key: string, value: any): boolean {
     return true;
 }
 
-private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): IChartDetail[] {
+private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): ChartDetail[] {
     switch (filterKey) {
         case 'period':
-            return this.filterByPeriod(data, filterValue as IPeriodFilter);
+            return this.filterByPeriod(data, filterValue as PeriodFilter);
             
         case 'furnaceNo':
             return data.filter(item => 
@@ -161,7 +172,7 @@ private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): 
 }
 
 
-    private filterByPeriod(data: IChartDetail[], period: IPeriodFilter): IChartDetail[] {
+    private filterByPeriod(data: ChartDetail[], period: PeriodFilter): ChartDetail[] {
         return data.filter(item => {
             try {
                 // สมมติว่า IChartDetail มี field ชื่อ 'collectedDate' หรือ 'createdAt'
@@ -190,7 +201,7 @@ private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): 
         });
     }
 
-    async getFilteredDataForCalculation(filters?: IChartDetailsFiltering): Promise<any> {
+    async getFilteredDataForCalculation(filters?: ChartDetailsFiltering): Promise<any> {
         try {
             const result = await this.handleDynamicFiltering(filters);
             return result;
@@ -199,7 +210,7 @@ private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): 
         }
     }
 
-    async calculateIMRChart(req: Request): Promise<IMRChartResult> {
+    async calculateIMRChart(req: Request): Promise<MRChartResult> {
         try {
             const filters = this.parseFiltersFromRequest(req);
             const dataForChart = await this.handleDynamicFiltering(filters);
@@ -269,7 +280,7 @@ private applyFilter(data: IChartDetail[], filterKey: string, filterValue: any): 
             // สำหรับ MR Chart ใช้สูตรต่างจาก I-Chart
             
             // ✅ สร้าง Response ตามรูปแบบที่ต้องการ
-            const result: IMRChartResult = {
+            const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
                 average: Number(average.toFixed(3)),
                 MRAverage: Number(mrAverage.toFixed(3)),

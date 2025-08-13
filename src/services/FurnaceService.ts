@@ -1,5 +1,5 @@
-import { FurnaceData, IFurnace } from "../models/Furnace";
-import { FurnaceRepository } from "../repositories/FurnaceRepo";
+import { FurnaceData, Furnace } from "../models/entities/furnace";
+import { FurnaceRepository } from "../repositories/furnaceRepo";
 
 
 // ✅ Furnace Service
@@ -12,7 +12,7 @@ export class FurnaceService {
   }
   constructor(private furnaceRepository: FurnaceRepository) {}
 
-  async bulkCreateUniqueFurnaces(furnaceDataArray: FurnaceData[]): Promise<IFurnace[]> {
+  async bulkCreateUniqueFurnaces(furnaceDataArray: FurnaceData[]): Promise<Furnace[]> {
     const uniqueFurnaceNos = [...new Set(furnaceDataArray.map(f => f.furnaceNo))];
     console.log(`Unique furnace numbers to process: ${uniqueFurnaceNos.length}`);
     
@@ -32,7 +32,7 @@ export class FurnaceService {
     return [];
   }
 
-  async getAllFurnaces(): Promise<IFurnace[]> {
+  async getAllFurnaces(): Promise<Furnace[]> {
     return await this.furnaceRepository.findAll();
   }
 }

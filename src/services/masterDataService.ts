@@ -1,16 +1,16 @@
 import { Types } from "mongoose";
-import { ChartDetailData, IChartDetail } from "../models/ChartDetail";
-import { CPData, ICP } from "../models/CustomerProduct";
-import { FurnaceData, IFurnace } from "../models/Furnace";
-import { MasterApiRequest, MasterApiResponse } from "../models/MasterApiResponse";
-import { FurnaceCodeEncoder } from "../utils/masterDataFGEncoder";
-import { ChartDetailService } from "./ChartDetailService";
-import { CustomerProductService } from "./CustomerProductService";
-import { FurnaceService } from "./FurnaceService";
-import { MASTER_API } from "../config/constans";
+import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
+import { CustomerProductData, CustomerProduct } from "../models/entities/customerProduct";
+import { FurnaceData, Furnace } from "../models/entities/furnace";
+import { ChartDetailService } from "./chartDetailService";
+import { CustomerProductService } from "./customerProductService";
+import { FurnaceService } from "./furnaceService";
+// import { MASTER_API } from "../config/constans";
 import { furnaceService, customerProductService, chartDetailService } from "../utils/serviceLocator";
 import dotenv from 'dotenv';
-import { MasterDataServiceHelper } from './MasterDataServiceHelper';
+import { MasterDataServiceHelper } from "./masterDataServiceHelper";
+import { MasterApiResponse, MasterApiRequest } from "../models/masterApiResponse";
+import { FurnaceCodeEncoder } from "../utils/masterDataFgEncoder";
 
 dotenv.config({ path: '.env' });
 
@@ -33,7 +33,7 @@ export class MasterDataService {
         updatedAt: new Date()
       };
 
-    const cpData: CPData = {
+    const cpData: CustomerProductData = {
       CPNo: record.lot_number || "N/A",
       furnaceId: [], // จะ assign ทีหลัง
       surfaceHardnessUSpec: record.surface_upper_spec || 0,
@@ -71,9 +71,9 @@ export class MasterDataService {
   }
 
   async processFromAPI(req: MasterApiRequest): Promise<{
-    furnaces: IFurnace[];
-    customerProducts: ICP[];
-    chartDetails: IChartDetail[];
+    furnaces: Furnace[];
+    customerProducts: CustomerProduct[];
+    chartDetails: ChartDetail[];
   }> {
     try {
       console.log('=== STARTING MASTER DATA PROCESSING ===');
@@ -96,7 +96,7 @@ export class MasterDataService {
       const furnaceMap = new Map(allFurnaces.map(f => [f.furnaceNo, f._id]));
 
       // 5. Update CP data with furnace IDs and bulk create
-      const cpDataArray: CPData[] = mappedData.map(m => {
+      const cpDataArray: CustomerProductData[] = mappedData.map(m => {
         const furnaceId = furnaceMap.get(m.furnaceData.furnaceNo);
         return {
           ...m.cpData,
@@ -228,6 +228,6 @@ export class MasterDataService {
     }
   }
 
-  async getAutomateDataFromQcReport(req: MasterApiRequest): Promise<void> {
-  }
+  // async getAutomateDataFromQcReport(req: MasterApiRequest): Promise<void> {
+  // }
 }

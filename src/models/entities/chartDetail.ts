@@ -1,9 +1,6 @@
 import mongoose, { Document, Schema, model } from "mongoose";
-import { FurnaceValidation } from "./validations/FurnaceValidate";
-import { ChartDetailValidate } from "./validations/ChartDetailValidate";
-import { CustomerProductValidate } from "./validations/CustomerProductValidate";
 
-export interface IChartDetail extends Document {
+export interface ChartDetail extends Document {
   CPNo: string;
   FGNo: string;
   chartGeneralDetail: {
@@ -39,7 +36,7 @@ export interface ChartDetailData {
   };
 }
 
-const chartDetailSchema = new Schema<IChartDetail>({
+const chartDetailSchema = new Schema<ChartDetail>({
   CPNo: { type: String, required: true },
   FGNo: { type: String, required: true, unique: true },
   chartGeneralDetail: {
@@ -57,9 +54,4 @@ const chartDetailSchema = new Schema<IChartDetail>({
   }
 }, { timestamps: true });
 
-export const ChartDetailModel = mongoose.models.ChartDetail || model<IChartDetail>('ChartDetail', chartDetailSchema);
-
-// ✅ TYPE EXPORTS
-// export type FurnaceInput = z.infer<typeof FurnaceValidation>;
-// export type CustomerProductInput = z.infer<typeof CustomerProductValidate>;
-// export type ChartDetailInput = z.infer<typeof ChartDetailValidate>;
+export const ChartDetailModel = mongoose.models.ChartDetail || model<ChartDetail>('ChartDetail', chartDetailSchema);

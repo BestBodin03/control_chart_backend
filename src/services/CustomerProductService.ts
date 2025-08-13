@@ -1,11 +1,12 @@
-import { CPData, ICP } from "../models/CustomerProduct";
-import { CustomerProductRepository } from "../repositories/CustomerProductRepo";
+import { CustomerProductData, CustomerProduct } from "../models/entities/customerProduct";
+import { CustomerProductRepository } from "../repositories/customerProductRepo";
+
 
 // ✅ Customer Product Service
 export class CustomerProductService {
   constructor(private cpRepository: CustomerProductRepository) {}
 
-  async bulkCreateUniqueCustomerProducts(cpDataArray: CPData[]): Promise<ICP[]> {
+  async bulkCreateUniqueCustomerProducts(cpDataArray: CustomerProductData[]): Promise<CustomerProduct[]> {
     const uniqueCPNos = [...new Set(cpDataArray.map(cp => cp.CPNo))];
     console.log(`Unique CP numbers to process: ${uniqueCPNos.length}`);
     
@@ -28,7 +29,7 @@ export class CustomerProductService {
     return [];
   }
 
-  async getAllCustomerProducts(): Promise<ICP[]> {
+  async getAllCustomerProducts(): Promise<CustomerProduct[]> {
     return await this.cpRepository.findAll();
   }
 }

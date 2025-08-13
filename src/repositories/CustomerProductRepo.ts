@@ -1,7 +1,7 @@
-import { CPData, CustomerProductModel, ICP } from "../models/CustomerProduct";
+import { CustomerProductData, CustomerProductModel, CustomerProduct } from "../models/entities/customerProduct";
 
 export class CustomerProductRepository {
-  async bulkCreate(data: CPData[]): Promise<ICP[]> {
+  async bulkCreate(data: CustomerProductData[]): Promise<CustomerProduct[]> {
     const ops = data.map(item => ({
       updateOne: {
         filter: { CPNo: item.CPNo },
@@ -13,20 +13,19 @@ export class CustomerProductRepository {
     await CustomerProductModel.bulkWrite(ops);
     
     const cpNos = data.map(d => d.CPNo);
-    return CustomerProductModel.find({ CPNo: { $in: cpNos } }).lean() as unknown as Promise<ICP[]>;
+    return CustomerProductModel.find({ CPNo: { $in: cpNos } }).lean() as unknown as Promise<CustomerProduct[]>;
   }
 
   async findExistingCPNos(cpNos: string[]): Promise<string[]> {
-    // ❌ FIXED: $for should be $in
     const existing = await CustomerProductModel.find({ CPNo: { $in: cpNos } }, 'CPNo').exec();
     return existing.map(cp => cp.CPNo);
   }
 
-  async findByCPNo(cpNo: string): Promise<ICP | null> {
+  async findByCPNo(cpNo: string): Promise<CustomerProduct | null> {
     return await CustomerProductModel.findOne({ CPNo: cpNo }).exec();
   }
 
-  async findAll(): Promise<ICP[]> {
+  async findAll(): Promise<CustomerProduct[]> {
     return await CustomerProductModel.find().exec();
   }
 }

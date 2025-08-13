@@ -1,6 +1,6 @@
-import { IPeriodFilter } from "../utils/dataPartitionwithPeriod";
+import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
 
-export interface IChartDetailsFiltering {
+export interface ChartDetailsFiltering {
   period: {
     startDate: string;
     endDate: string;
@@ -12,7 +12,8 @@ export interface IChartDetailsFiltering {
 export interface FilteredResult<T> {
   data: T[];
   total: number;
-  filters: IChartDetailsFiltering;
+  filters: ChartDetailsFiltering;
+  summary: T[];
 }
 
 export interface ControlLimits {
@@ -30,7 +31,7 @@ export interface SigmaLevels {
  sigmaPlus3: number;
 }
 
-export interface IMRChartResult {
+export interface MRChartResult {
   numberOfSpots: number;
   average: number;
   MRAverage: number;
@@ -40,6 +41,6 @@ export interface IMRChartResult {
   mrChartSpots: number[];
 }
 
-export interface IMRChartSpots {
+export interface MRChartSpots {
   spotValue: number;
 }

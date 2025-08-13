@@ -1,8 +1,7 @@
-import { FurnaceData, FurnaceModel, IFurnace } from "../models/Furnace";
+import { FurnaceData, FurnaceModel, Furnace } from "../models/entities/furnace";
 
-// ✅ Furnace Repository
 export class FurnaceRepository {
-  async bulkCreate(data: FurnaceData[]): Promise<IFurnace[]> {
+  async bulkCreate(data: FurnaceData[]): Promise<Furnace[]> {
     const ops = data.map(item => ({
       updateOne: {
         filter: { furnaceNo: item.furnaceNo },
@@ -14,7 +13,7 @@ export class FurnaceRepository {
     await FurnaceModel.bulkWrite(ops);
     
     const furnaceNos = data.map(d => d.furnaceNo);
-    return FurnaceModel.find({ furnaceNo: { $in: furnaceNos } }).lean() as unknown as Promise<IFurnace[]>;
+    return FurnaceModel.find({ furnaceNo: { $in: furnaceNos } }).lean() as unknown as Promise<Furnace[]>;
   }
 
   async findExistingFurnaceNos(furnaceNos: number[]): Promise<number[]> {
@@ -22,11 +21,11 @@ export class FurnaceRepository {
     return existing.map(f => f.furnaceNo);
   }
 
-  async findByFurnaceNo(furnaceNo: number): Promise<IFurnace | null> {
+  async findByFurnaceNo(furnaceNo: number): Promise<Furnace | null> {
     return await FurnaceModel.findOne({ furnaceNo }).exec();
   }
 
-  async findAll(): Promise<IFurnace[]> {
+  async findAll(): Promise<Furnace[]> {
     return await FurnaceModel.find().exec();
   }
 }

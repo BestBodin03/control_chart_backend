@@ -1,7 +1,7 @@
 import mongoose, { Schema, model, Document, Types } from 'mongoose';
 
 
-export interface IFurnace extends Document {
+export interface Furnace extends Document {
   furnaceNo: number;
   furnaceDescription: string;
   isDisplay: boolean;
@@ -17,10 +17,10 @@ export interface FurnaceData {
   updatedAt: Date;
 }
 
-const furnaceSchema = new Schema<IFurnace>({
+const furnaceSchema = new Schema<Furnace>({
   furnaceNo: { type: Number, required: true, unique: true },
   furnaceDescription: { type: String, required: true },
   isDisplay: { type: Boolean, default: true }
 }, { timestamps: true });
 
-export const FurnaceModel = mongoose.models.Furnace || model<IFurnace>('Furnace', furnaceSchema);
+export const FurnaceModel = mongoose.models.Furnace || model<Furnace>('Furnace', furnaceSchema);

@@ -1,8 +1,8 @@
 import { Document, Schema, model } from "mongoose";
-import { DisplayType } from "./enums/DisplayType";
-import { PeriodType } from "./enums/PeriodType";
+import { DisplayType } from "../enums/displayType";
+import { PeriodType } from "../enums/periodType";
 
-export interface ISetting extends Document {
+export interface Setting extends Document {
   settingProfileName: string;
   isUsed: boolean;
   displayType: DisplayType;
@@ -42,7 +42,7 @@ export interface SettingData {
   updatedAt: Date;
 }
 
-const settingSchema = new Schema<ISetting>(
+const settingSchema = new Schema<Setting>(
   {
     isUsed: {
       type:Boolean,
@@ -104,4 +104,4 @@ const settingSchema = new Schema<ISetting>(
   { timestamps: true }
 );
 
-export const SettingModel = model<ISetting>('Setting', settingSchema);
+export const SettingModel = model<Setting>('Setting', settingSchema);

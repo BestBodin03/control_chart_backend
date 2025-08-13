@@ -1,7 +1,7 @@
 import mongoose, { Document, model, Schema, Types } from "mongoose";
 
 // แก้ไข Interface ICP ให้ตรงกับ CPData
-export interface ICP extends Document {
+export interface CustomerProduct extends Document {
   CPNo: string;
   furnaceId: Types.ObjectId[];
   surfaceHardnessUSpec?: number; // เพิ่ม spec fields
@@ -17,7 +17,7 @@ export interface ICP extends Document {
 }
 
 // หรือทำให้ CPData extends ICP
-export interface CPData {
+export interface CustomerProductData {
   CPNo: string;
   furnaceId: Types.ObjectId[];
   surfaceHardnessUSpec?: number; // เพิ่ม spec fields
@@ -33,7 +33,7 @@ export interface CPData {
 }
 
 // แก้ไข Schema
-const customerProductSchema = new Schema<ICP>({
+const customerProductSchema = new Schema<CustomerProduct>({
   CPNo: { type: String, required: true, unique: true },
   furnaceId: [{ type: Schema.Types.ObjectId, ref: 'Furnace' }],
   surfaceHardnessUSpec: { type: Number, required: false, default: null },
@@ -48,4 +48,4 @@ const customerProductSchema = new Schema<ICP>({
   isDisplay: { type: Boolean, default: true }
 }, { timestamps: true });
 
-export const CustomerProductModel = mongoose.models.CustomerProduct || model<ICP>('CustomerProduct', customerProductSchema);
+export const CustomerProductModel = mongoose.models.CustomerProduct || model<CustomerProduct>('CustomerProduct', customerProductSchema);

@@ -1,5 +1,5 @@
-import { SettingData } from "../models/Setting";
-import { SettingService } from "../services/SettingService";
+import { SettingData } from "../models/entities/setting";
+import { SettingService } from "../services/settingService";
 import {Request, Response} from 'express';
 import { settingService } from "../utils/serviceLocator";
 
@@ -12,17 +12,22 @@ export class SettingController {
       
       const result = await settingService.createSettingProfile(settingData);
       
-      res.status(201).json({
-        success: true,
-        message: 'Setting created successfully',
-        data: result
+      res.json({
+          status: "success",
+          statusCode: res.statusCode,
+          data: result
       });
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to create setting'
-      });
-    }
+    } catch (e: any) {
+        res.json({
+            status: "error",
+            statusCode: res.statusCode,
+            error: {
+            message: e.message,
+            path: req.originalUrl,
+            timeStamp: Date.now()
+            }
+        });
+      }
   };
 
   async getAllSettings(req: Request, res: Response): Promise<void> {
@@ -30,14 +35,20 @@ export class SettingController {
       const result = await settingService.getAllSettingProfiles();
       
       res.json({
-        success: true,
-        data: result,
+          status: "success",
+          statusCode: res.statusCode,
+          result
       });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Failed to get settings'
-      });
+    } catch (e: any) {
+        res.json({
+            status: "error",
+            statusCode: res.statusCode,
+            error: {
+            message: e.message,
+            path: req.originalUrl,
+            timeStamp: Date.now()
+            }
+        });
     }
   };
 }

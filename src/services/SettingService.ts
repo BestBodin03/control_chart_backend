@@ -1,12 +1,12 @@
 import mongoose, { ClientSession } from "mongoose";
-import { SettingData, ISetting, SettingModel } from "../models/Setting";
-import { SettingRepository } from "../repositories/SettingRepo";
-import { PeriodType } from "../models/enums/PeriodType";
+import { SettingData, Setting, SettingModel } from "../models/entities/setting";
+import { SettingRepository } from "../repositories/settingRepo";
+import { PeriodType } from "../models/enums/periodType";
 import { TimeConverter } from "../utils/timeConvertor";
 
 export class SettingService {
 
-  async createSettingProfile(settingData: SettingData): Promise<ISetting> {
+  async createSettingProfile(settingData: SettingData): Promise<Setting> {
     try {
       // ✅ Use TimeConverter to get date range based on period type
       const enhancedSettingData = await this.updateSettingWithTimeConverter(settingData);
@@ -57,7 +57,6 @@ export class SettingService {
         pastDays // for PAST_MONTH type
       );
 
-      // ✅ Return enhanced setting data with calculated dates
       return {
         ...settingData,
         generalSetting: {
@@ -71,12 +70,12 @@ export class SettingService {
       };
 
     } catch (error: any) {
-      // ✅ If TimeConverter fails, throw descriptive error
-      throw new Error(`Failed to calculate date range for period type '${periodType}': ${error.message}`);
+      throw new Error(`Failed to calculate date range for period type
+         '${periodType}': ${error.message}`);
     }
   }
 
-  async getAllSettingProfiles(): Promise<ISetting[]> {
+  async getAllSettingProfiles(): Promise<Setting[]> {
     try {
       const settings = await SettingModel
         .find({})
@@ -89,8 +88,7 @@ export class SettingService {
     }
   }
 
-  // ✅ Method to refresh dates for existing setting using TimeConverter
-  async refreshSettingDates(settingId: string, newPeriodType?: PeriodType): Promise<ISetting | null> {
+  async refreshSettingDates(settingId: string, newPeriodType?: PeriodType): Promise<Setting | null> {
     try {
       const existingSetting = await SettingModel.findById(settingId);
       if (!existingSetting) {
@@ -122,7 +120,6 @@ export class SettingService {
     }
   }
 
-  // ✅ Method to get current effective date range for a setting
   async getSettingDateRange(settingId: string): Promise<{
     startDate: Date;
     endDate: Date;
@@ -150,7 +147,6 @@ export class SettingService {
     }
   }
 
-  // ✅ Method to validate period configuration using TimeConverter
   async validatePeriodConfiguration(periodType: PeriodType, startDate?: Date, endDate?: Date): Promise<{
     isValid: boolean;
     dateRange?: { startDate: Date; endDate: Date };

@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import { furnaceController } from '../../../utils/serviceLocator';
 
 const router = Router();
 
-// router.post('/furnace/add-with-master-data', createFurnace);
-// router.get('/furnace-list', getAllFurnaces);
+router.get('/all-furnaces', async (req, res) => {
+  furnaceController.getAllFurnaces(req, res);
+});
 
-export default router;
+export { router as furnaceRoute };

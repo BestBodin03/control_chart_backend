@@ -1,9 +1,9 @@
 import { count } from "console";
-import { ChartDetailData, ChartDetailModel, IChartDetail } from "../models/ChartDetail";
-import { ISetting, SettingData, SettingModel } from "../models/Setting";
+import { ChartDetailData, ChartDetailModel, ChartDetail } from "../models/entities/chartDetail";
+import { Setting, SettingData, SettingModel } from "../models/entities/setting";
 import { SuperRefinement } from "zod";
 
-export interface IPeriodFilter {
+export interface PeriodFilter {
   startDate: string;
   endDate: string;
 }
@@ -31,7 +31,7 @@ export class DataPartitionwithPeriod {
         }
     }
 
-    static async makeDataPartitionWithDate(periodFilter: IPeriodFilter) {
+    static async makeDataPartitionWithDate(periodFilter: PeriodFilter) {
         try {
             // กรองข้อมูลตามช่วงเวลาใน periodFilter
             const dataPartition = await ChartDetailModel.find({
@@ -56,7 +56,7 @@ export class DataPartitionwithPeriod {
             throw error;
         }
     }
-    static async FilterChartDetail(settingFiltering: ISetting, preFilteredData?: any[]) {
+    static async FilterChartDetail(settingFiltering: Setting, preFilteredData?: any[]) {
         try {
             // If pre-filtered data is provided, filter from that data
             if (preFilteredData && preFilteredData.length > 0) {
