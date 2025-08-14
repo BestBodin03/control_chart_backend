@@ -1,4 +1,5 @@
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
+import { CustomerProduct } from "./entities/customerProduct";
 
 export interface ChartDetailsFiltering {
   period: {
@@ -39,8 +40,35 @@ export interface MRChartResult {
   sigmaIChart: SigmaLevels;
   controlLimitMRChart: ControlLimits;
   mrChartSpots: number[];
+  specAttribute: SpecAttribute;
 }
 
 export interface MRChartSpots {
   spotValue: number;
 }
+
+export interface SpecAttribute {
+  materialNo?: string;
+  surfaceHardnessUpperSpec?: number;
+  surfaceHardnessLowerSpec?: number;
+  surfaceHardnessTarget?: number;
+  cdeUpperSpec?: number;
+  cdeLowerSpec?: number;
+  cdeTarget?: number;
+  cdtUpperSpec?: number;
+  cdtLowerSpec?: number;
+  cdtTarget?: number;
+}
+
+export const toSpecAttribute = (cp: CustomerProduct): SpecAttribute => ({
+  materialNo: cp.CPNo,
+  surfaceHardnessUpperSpec: cp.surfaceHardnessUSpec,
+  surfaceHardnessLowerSpec: cp.surfaceHardnessLSpec,
+  surfaceHardnessTarget: cp.surfaceHardnessTarget,
+  cdeUpperSpec: cp.cdeUSpec,
+  cdeLowerSpec: cp.cdeLSpec,
+  cdeTarget: cp.cdeTarget,
+  cdtUpperSpec: cp.cdtUSpec,
+  cdtLowerSpec: cp.cdtLSpec,
+  cdtTarget: cp.cdtTarget,
+});

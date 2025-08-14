@@ -1,10 +1,11 @@
 import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
-import { ChartDetailsFiltering, FilteredResult, MRChartResult } from "../models/chartDetailFiltering";
+import { ChartDetailsFiltering, FilteredResult, MRChartResult, toSpecAttribute } from "../models/chartDetailFiltering";
 import { Router, Request, Response } from "express";
-import { chartDetailController } from "../utils/serviceLocator";
+import { chartDetailController, customerProductService } from "../utils/serviceLocator";
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
 import { ChartDetailRepository } from "../repositories/chartDetailRepo";
 import { any } from "zod";
+import { CustomerProduct } from "../models/entities/customerProduct";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {
@@ -212,9 +213,10 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
 
     async calculateIMRChart(req: Request): Promise<MRChartResult> {
         try {
+            const spec: CustomerProduct[] = await customerProductService.getAllCustomerProducts();
             const filters = this.parseFiltersFromRequest(req);
             const dataForChart = await this.handleDynamicFiltering(filters);
-            console.log(dataForChart.total);
+            // console.log(dataForChart.total);
             
             const dataWithFurnace = dataForChart.data.map(item => ({
                 furnaceNo: item.chartGeneralDetail?.furnaceNo,
@@ -222,9 +224,8 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 date: item.chartGeneralDetail?.collectedDate
             }));
 
-            console.log(dataForChart.total);
+            // console.log(dataForChart.total);
 
-            // Filter valid data
             const validHardnessData = dataWithFurnace.filter(item => 
                 item.hardness !== undefined && 
                 item.hardness !== null && 
@@ -235,33 +236,27 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 throw new Error('ไม่สามารถแสดงแผนภูมิควบคุมได้ เนื่องจากข้อมูลน้อยกว่า 2 รายการ');
             }
             
-            // ✅ Extract hardness values
             const hardnessValues = validHardnessData.map(item => item.hardness);
-            console.log('Hardness values:', hardnessValues.length);
-            console.log('Hardness values:', hardnessValues);
+            // console.log('Hardness values:', hardnessValues.length);
+            // console.log('Hardness values:', hardnessValues);
             
-            // ✅ คำนวณ Average
             const average = parseFloat((hardnessValues.reduce((sum, value) => sum + value, 0) / hardnessValues.length).toFixed(3));
-            console.log('Average:', average);
+            // console.log('Average:', average);
             
-            // ✅ คำนวณ Moving Range และ MR Average
             const movingRanges = hardnessValues
                 .slice(1)
                 .map((value, index) => +Math.abs(value - hardnessValues[index]).toFixed(3));
             
             const mrAverage = parseFloat((movingRanges.reduce((sum, value) => sum + value, 0) / movingRanges.length).toFixed(3));
-            console.log('Moving Ranges:', movingRanges.length);
-            console.log('Moving Ranges List:', movingRanges);
-            console.log('MR Average:', mrAverage);
+            // console.log('Moving Ranges:', movingRanges.length);
+            // console.log('Moving Ranges List:', movingRanges);
+            // console.log('MR Average:', mrAverage);
 
-            
-            // ✅ คำนวณ Control Limits สำหรับ I-Chart
             const iChartUCL = parseFloat((average + (2.660 * mrAverage)).toFixed(3));
             const iChartLCL = parseFloat((average - (2.660 * mrAverage)).toFixed(3));
 
             const sigmaStdIchart = parseFloat((mrAverage/1.128).toFixed(3));
             
-            // ✅ คำนวณ Sigma Lines สำหรับ I-Chart
             const iChartSigma = {
                 sigmaMinus3: iChartLCL,
                 sigmaMinus2: iChartLCL + sigmaStdIchart,
@@ -271,15 +266,22 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 sigmaPlus3: iChartUCL
             };
             
-            // ✅ คำนวณ Control Limits สำหรับ MR-Chart
-            // MR Chart: UCL = 3.267 * MRAverage, LCL = 0 (หรือไม่แสดง)
             const mrChartUCL = parseFloat((3.267 * mrAverage).toFixed(3));
-            const mrChartLCL = 0; // MR Chart LCL มักจะเป็น 0
-            
-            // ✅ คำนวณ Sigma Lines สำหรับ MR-Chart
-            // สำหรับ MR Chart ใช้สูตรต่างจาก I-Chart
-            
-            // ✅ สร้าง Response ตามรูปแบบที่ต้องการ
+            const mrChartLCL = 0; 
+            const selectedMaterialNo = filters?.matNo ?? "";
+
+            // Handle empty material number
+            let matchedProduct: CustomerProduct | undefined;
+            let specAttribute;
+
+            if (selectedMaterialNo && selectedMaterialNo.trim() !== "") {
+                matchedProduct = spec.find(cp => cp.CPNo === selectedMaterialNo);
+                specAttribute = matchedProduct ? toSpecAttribute(matchedProduct) : {};
+            } else {
+                // No material selected, use default/empty spec
+                specAttribute = {};
+            }
+
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
                 average: Number(average.toFixed(3)),
@@ -302,7 +304,8 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                     UCL: Number(mrChartUCL.toFixed(3)),
                     LCL: Number(mrChartLCL.toFixed(3))
                 },
-                mrChartSpots: movingRanges
+                mrChartSpots: movingRanges,
+                specAttribute
             };
             
             console.log('I-MR Chart Calculation Results:', result);
