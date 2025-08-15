@@ -210,7 +210,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             throw error;
         }
     }
-
+    
     async calculateIMRChart(req: Request): Promise<MRChartResult> {
         try {
             const spec: CustomerProduct[] = await customerProductService.getAllCustomerProducts();
@@ -221,6 +221,8 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const dataWithFurnace = dataForChart.data.map(item => ({
                 furnaceNo: item.chartGeneralDetail?.furnaceNo,
                 hardness: item.machanicDetail?.surfaceHardnessMean,
+                cde: item.machanicDetail?.CDE.CDEX,
+                cdt: item.machanicDetail?.CDE.CDTX,
                 date: item.chartGeneralDetail?.collectedDate
             }));
 
@@ -231,6 +233,18 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 item.hardness !== null && 
                 !isNaN(item.hardness)
             );
+
+            const validCdeData = dataWithFurnace.filter(item => 
+                item.cde !== undefined && 
+                item.cde !== null && 
+                !isNaN(item.cde)
+            );
+
+            const validCdtData = dataWithFurnace.filter(item => 
+                item.cdt !== undefined && 
+                item.cdt !== null && 
+                !isNaN(item.cdt)
+            );
             
             if (validHardnessData.length < 2) {
                 throw new Error('ไม่สามารถแสดงแผนภูมิควบคุมได้ เนื่องจากข้อมูลน้อยกว่า 2 รายการ');
@@ -239,35 +253,83 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const hardnessValues = validHardnessData.map(item => item.hardness);
             // console.log('Hardness values:', hardnessValues.length);
             // console.log('Hardness values:', hardnessValues);
+            const cdeValues = validCdeData.map(item => item.cde);
+            const cdtValues = validCdtData.map(item => item.cdt);
+
             
             const average = parseFloat((hardnessValues.reduce((sum, value) => sum + value, 0) / hardnessValues.length).toFixed(3));
             // console.log('Average:', average);
-            
+            const cdeAverage = parseFloat((cdeValues.reduce((sum, value) => sum + value, 0) / cdeValues.length).toFixed(3));
+            const cdtAverage = parseFloat((cdtValues.reduce((sum, value) => sum + value, 0) / cdtValues.length).toFixed(3));
+
             const movingRanges = hardnessValues
                 .slice(1)
                 .map((value, index) => +Math.abs(value - hardnessValues[index]).toFixed(3));
+
+            const cdeMovingRanges = cdeValues
+                .slice(1)
+                .map((value, index) => +Math.abs(value - cdeValues[index]).toFixed(3));
+
+            const cdtMovingRanges = cdtValues
+                .slice(1)
+                .map((value, index) => +Math.abs(value - cdtValues[index]).toFixed(3));
             
             const mrAverage = parseFloat((movingRanges.reduce((sum, value) => sum + value, 0) / movingRanges.length).toFixed(3));
             // console.log('Moving Ranges:', movingRanges.length);
             // console.log('Moving Ranges List:', movingRanges);
             // console.log('MR Average:', mrAverage);
+            const cdeMrAverage = parseFloat((cdeMovingRanges.reduce((sum, value) => sum + value, 0) / cdeMovingRanges.length).toFixed(3));
+            const cdtMrAverage = parseFloat((cdtMovingRanges.reduce((sum, value) => sum + value, 0) / cdtMovingRanges.length).toFixed(3));
 
             const iChartUCL = parseFloat((average + (2.660 * mrAverage)).toFixed(3));
             const iChartLCL = parseFloat((average - (2.660 * mrAverage)).toFixed(3));
 
+            const cdeIChartUCL = parseFloat((cdeAverage + (2.660 * cdeMrAverage)).toFixed(3));
+            const cdeIChartLCL = parseFloat((cdeAverage - (2.660 * cdeMrAverage)).toFixed(3));
+
+            const cdtIChartUCL = parseFloat((cdtAverage + (2.660 * cdtMrAverage)).toFixed(3));
+            const cdtIChartLCL = parseFloat((cdtAverage - (2.660 * cdtMrAverage)).toFixed(3));
+
             const sigmaStdIchart = parseFloat((mrAverage/1.128).toFixed(3));
-            
-            const iChartSigma = {
-                sigmaMinus3: iChartLCL,
-                sigmaMinus2: iChartLCL + sigmaStdIchart,
-                sigmaMinus1: iChartLCL + (sigmaStdIchart * 2 ),
-                sigmaPlus1: iChartUCL - (sigmaStdIchart * 2 ),
-                sigmaPlus2: iChartUCL - sigmaStdIchart,
-                sigmaPlus3: iChartUCL
+            const cdeSigmaStdIchart = parseFloat((cdeMrAverage/1.128).toFixed(3));
+            const cdtSigmaStdIchart = parseFloat((cdtMrAverage/1.128).toFixed(3));
+
+            const iChartSigma = { 
+                sigmaMinus3: iChartLCL, 
+                sigmaMinus2: iChartLCL + sigmaStdIchart, 
+                sigmaMinus1: iChartLCL + (sigmaStdIchart * 2 ), 
+                sigmaPlus1: iChartUCL - (sigmaStdIchart * 2 ), 
+                sigmaPlus2: iChartUCL - sigmaStdIchart, 
+                sigmaPlus3: iChartUCL 
             };
-            
-            const mrChartUCL = parseFloat((3.267 * mrAverage).toFixed(3));
-            const mrChartLCL = 0; 
+
+            const cdeIChartSigma = { 
+                sigmaMinus3: cdeIChartLCL, 
+                sigmaMinus2:cdeIChartLCL + cdeSigmaStdIchart, 
+                sigmaMinus1: cdeIChartLCL + (cdeSigmaStdIchart * 2 ), 
+                sigmaPlus1: cdeIChartUCL - (cdeSigmaStdIchart * 2 ), 
+                sigmaPlus2: cdeIChartUCL - cdeSigmaStdIchart, 
+                sigmaPlus3: cdeIChartUCL 
+            };
+
+            const cdtIChartSigma = { 
+                sigmaMinus3: cdtIChartLCL, 
+                sigmaMinus2:cdtIChartLCL + cdtSigmaStdIchart, 
+                sigmaMinus1: cdtIChartLCL + (cdtSigmaStdIchart * 2 ), 
+                sigmaPlus1: cdtIChartUCL - (cdtSigmaStdIchart * 2 ), 
+                sigmaPlus2: cdtIChartUCL - cdtSigmaStdIchart, 
+                sigmaPlus3: cdtIChartUCL 
+            };
+
+            const mrChartUCL     = parseFloat((3.267 * mrAverage).toFixed(3));
+            const mrChartLCL     = 0;
+
+            const cdeMrChartUCL  = parseFloat((3.267 * cdeMrAverage).toFixed(3));
+            const cdeMrChartLCL  = 0;
+
+            const cdtMrChartUCL  = parseFloat((3.267 * cdtMrAverage).toFixed(3));
+            const cdtMrChartLCL  = 0;
+
             const selectedMaterialNo = filters?.matNo ?? "";
 
             // Handle empty material number
@@ -285,11 +347,25 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
                 average: Number(average.toFixed(3)),
+                cdeAvergae: Number(cdeAverage.toFixed(3)),
+                cdtAverage: Number(cdtAverage.toFixed(3)),
                 MRAverage: Number(mrAverage.toFixed(3)),
+                cdeMRAverage: Number(cdeMrAverage.toFixed(3)),
+                cdtMRAverage:Number(cdtMrAverage.toFixed(3)),
                 controlLimitIChart: {
                     CL: Number(average.toFixed(3)),
                     UCL: Number(iChartUCL.toFixed(3)),
                     LCL: Number(iChartLCL.toFixed(3))
+                },
+                cdeControlLimitIChart: {
+                    CL: Number(cdeAverage.toFixed(3)),
+                    UCL: Number(cdeIChartUCL.toFixed(3)),
+                    LCL: Number(cdeIChartLCL.toFixed(3))
+                },
+                cdtControlLimitIChart: {
+                    CL: Number(cdtAverage.toFixed(3)),
+                    UCL: Number(cdtIChartUCL.toFixed(3)),
+                    LCL: Number(cdtIChartLCL.toFixed(3))
                 },
                 sigmaIChart: {
                     sigmaMinus3: Number(iChartSigma.sigmaMinus3.toFixed(3)),
@@ -299,16 +375,45 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                     sigmaPlus2: Number(iChartSigma.sigmaPlus2.toFixed(3)),
                     sigmaPlus3: Number(iChartSigma.sigmaPlus3.toFixed(3))
                 },
+                cdeSigmaIChart: {
+                    sigmaMinus3: Number(cdeIChartSigma.sigmaMinus3.toFixed(3)),
+                    sigmaMinus2: Number(cdeIChartSigma.sigmaMinus2.toFixed(3)),
+                    sigmaMinus1: Number(cdeIChartSigma.sigmaMinus1.toFixed(3)),
+                    sigmaPlus1: Number(cdeIChartSigma.sigmaPlus1.toFixed(3)),
+                    sigmaPlus2: Number(cdeIChartSigma.sigmaPlus2.toFixed(3)),
+                    sigmaPlus3: Number(cdeIChartSigma.sigmaPlus3.toFixed(3))
+                },
+                cdtSigmaIChart: {
+                    sigmaMinus3: Number(cdtIChartSigma.sigmaMinus3.toFixed(3)),
+                    sigmaMinus2: Number(cdtIChartSigma.sigmaMinus2.toFixed(3)),
+                    sigmaMinus1: Number(cdtIChartSigma.sigmaMinus1.toFixed(3)),
+                    sigmaPlus1: Number(cdtIChartSigma.sigmaPlus1.toFixed(3)),
+                    sigmaPlus2: Number(cdtIChartSigma.sigmaPlus2.toFixed(3)),
+                    sigmaPlus3: Number(cdtIChartSigma.sigmaPlus3.toFixed(3))
+                },
                 controlLimitMRChart: {
                     CL: Number(mrAverage.toFixed(3)),
                     UCL: Number(mrChartUCL.toFixed(3)),
                     LCL: Number(mrChartLCL.toFixed(3))
                 },
+                cdeControlLimitMRChart: {
+                    CL: Number(cdeMrAverage.toFixed(3)),
+                    UCL: Number(cdeMrChartUCL.toFixed(3)),
+                    LCL: Number(cdeMrChartLCL.toFixed(3))
+                },
+                cdtControlLimitMRChart: {
+                    CL: Number(cdtMrAverage.toFixed(3)),
+                    UCL: Number(cdtMrChartUCL.toFixed(3)),
+                    LCL: Number(cdtMrChartLCL.toFixed(3))
+                },
                 mrChartSpots: movingRanges,
-                specAttribute
+                cdeMrChartSpots: cdeMovingRanges,
+                cdtMrChartSpots: cdtMovingRanges,
+                specAttribute,
             };
-            
+           
             console.log('I-MR Chart Calculation Results:', result);
+            console.log('hardness value:', hardnessValues);
             return result;
             
         } catch (error) {

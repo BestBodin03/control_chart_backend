@@ -35,11 +35,23 @@ export interface SigmaLevels {
 export interface MRChartResult {
   numberOfSpots: number;
   average: number;
+  cdeAvergae: number;
+  cdtAverage: number;
   MRAverage: number;
+  cdeMRAverage: number;
+  cdtMRAverage: number;
   controlLimitIChart: ControlLimits;
+  cdeControlLimitIChart: ControlLimits;
+  cdtControlLimitIChart: ControlLimits;
   sigmaIChart: SigmaLevels;
+  cdeSigmaIChart: SigmaLevels;
+  cdtSigmaIChart: SigmaLevels;
   controlLimitMRChart: ControlLimits;
+  cdeControlLimitMRChart: ControlLimits;
+  cdtControlLimitMRChart: ControlLimits;
   mrChartSpots: number[];
+  cdeMrChartSpots: number[];
+  cdtMrChartSpots: number[];
   specAttribute: SpecAttribute;
 }
 
