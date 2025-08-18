@@ -1,12 +1,12 @@
 import mongoose, { ClientSession } from "mongoose";
-import { SettingData, Setting, SettingModel } from "../models/entities/setting";
+import { SettingResponse, Setting, SettingModel } from "../models/entities/setting";
 import { SettingRepository } from "../repositories/settingRepo";
 import { PeriodType } from "../models/enums/periodType";
 import { TimeConverter } from "../utils/timeConvertor";
 
 export class SettingService {
 
-  async createSettingProfile(settingData: SettingData): Promise<Setting> {
+  async createSettingProfile(settingData: SettingResponse): Promise<Setting> {
     try {
       // ✅ Use TimeConverter to get date range based on period type
       const enhancedSettingData = await this.updateSettingWithTimeConverter(settingData);
@@ -30,50 +30,51 @@ export class SettingService {
     }
   }
 
-  // ✅ Private method to use TimeConverter for date calculation
-  private async updateSettingWithTimeConverter(settingData: SettingData): Promise<SettingData> {
-    const periodType = settingData.generalSetting.period.type;
-    
-    // ✅ Skip if CUSTOM type and already has both dates
-    if (periodType === PeriodType.CUSTOM && 
-        settingData.generalSetting.period.startDate && 
-        settingData.generalSetting.period.endDate) {
-      return settingData;
-    }
+  // ✅ Private method to use TimeConverter for date calculation per specificSetting item
+  private async updateSettingWithTimeConverter(settingData: SettingResponse): Promise<SettingResponse> {
+    const updatedSpecific = (settingData.specificSetting ?? []).map(item => {
+      const periodType = item.period.type;
 
-    // ✅ For PAST_MONTH, check if customDays is provided in the period object
-    let pastDays: number | undefined;
-    if (periodType === PeriodType.ONE_MONTH) {
-      // You can extend the interface to include customDays if needed
-      pastDays = (settingData.generalSetting.period as any).customDays || 30;
-    }
+      // ✅ Skip this item if CUSTOM and already has both dates
+      if (
+        periodType === PeriodType.CUSTOM &&
+        item.period.startDate &&
+        item.period.endDate
+      ) {
+        return item;
+      }
 
-    try {
-      // ✅ Use TimeConverter utility to get date range
+      // ✅ For ONE_MONTH, allow customDays inside the period (optional), default 30
+      let pastDays: number | undefined;
+      if (periodType === PeriodType.ONE_MONTH) {
+        pastDays = (item.period as any).customDays ?? 30;
+      }
+
+      // ✅ Use TimeConverter utility to get date range for this item
       const dateRange = TimeConverter.toDateRange(
         periodType,
-        settingData.generalSetting.period.startDate, // customStart for CUSTOM type
-        settingData.generalSetting.period.endDate,   // customEnd for CUSTOM type
-        pastDays // for PAST_MONTH type
+        item.period.startDate, // customStart for CUSTOM
+        item.period.endDate,   // customEnd for CUSTOM
+        pastDays               // for ONE_MONTH
       );
 
       return {
-        ...settingData,
-        generalSetting: {
-          ...settingData.generalSetting,
-          period: {
-            ...settingData.generalSetting.period,
-            startDate: dateRange.startDate,
-            endDate: dateRange.endDate
-          }
-        }
+        ...item,
+        period: {
+          ...item.period,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+        },
       };
+    });
 
-    } catch (error: any) {
-      throw new Error(`Failed to calculate date range for period type
-         '${periodType}': ${error.message}`);
-    }
+    // ✅ Return updated object: generalSetting stays as-is, only specificSetting updated
+    return {
+      ...settingData,
+      specificSetting: updatedSpecific,
+    };
   }
+
 
   async getAllSettingProfiles(): Promise<Setting[]> {
     try {

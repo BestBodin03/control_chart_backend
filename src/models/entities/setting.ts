@@ -15,6 +15,11 @@ export interface Setting extends Document {
     };
   };
   specificSetting: {
+    period: {
+      type: PeriodType;
+      startDate?: Date;
+      endDate?: Date;
+    };
     furnaceNo: number;
     cpNo: string;
   }[];
@@ -22,19 +27,23 @@ export interface Setting extends Document {
   updatedAt: Date;
 }
 
-export interface SettingData {
+export interface SettingResponse {
   settingProfileName: string;
   isUsed: boolean;
   displayType: DisplayType;
   generalSetting: {
     chartChangeInterval: number;
+    nelsonCondtion: {
+      conditionName: String;
+      conditionNo: number;
+    }[];
+  };
+  specificSetting: {
     period: {
       type: PeriodType;
       startDate?: Date;
       endDate?: Date;
     };
-  };
-  specificSetting: {
     furnaceNo: number;
     cpNo: string;
   }[];
@@ -63,7 +72,7 @@ const settingSchema = new Schema<Setting>(
       chartChangeInterval: { 
         type: Number, 
         required: true,
-        min: 1,
+        min: 10,
         max: 3600
       },
       period: {

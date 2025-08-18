@@ -1,115 +1,158 @@
-import { count } from "console";
-import { ChartDetailData, ChartDetailModel, ChartDetail } from "../models/entities/chartDetail";
-import { Setting, SettingData, SettingModel } from "../models/entities/setting";
-import { SuperRefinement } from "zod";
+import { ChartDetailModel } from "../models/entities/chartDetail";
+import { Setting, SettingModel } from "../models/entities/setting";
 
 export interface PeriodFilter {
-  startDate: string;
-  endDate: string;
+  startDate: string; // ISO string
+  endDate: string;   // ISO string
 }
 
 export class DataPartitionwithPeriod {
-    static async getDateBySettingProfileName(periodName: String) {
-        try {
-            const settingPeriod = await SettingModel.findOne({
-                settingProfileName: periodName
-            }).select(
-                'settingProfileName generalSetting.period.startDate generalSetting.period.endDate'
-            )
-            if (!settingPeriod) {
-                throw new Error(`Period '${periodName}' not found`);
-            }
-            return {
-                name: settingPeriod.settingProfileName!,
-                startDate: settingPeriod.generalSetting.period.startDate! ,
-                endDate: settingPeriod.generalSetting.period.endDate!
-            }
+  static async getDateBySettingProfileName(periodName: string) {
+    try {
+      const setting = await SettingModel.findOne({
+        settingProfileName: periodName,
+      })
+        .select("settingProfileName specificSetting.period")
+        .lean();
 
-        } catch (error) {
-            console.error('Error getting period:', error);
-            throw error;
+      if (!setting) {
+        throw new Error(`Period '${periodName}' not found`);
+      }
+
+      // รวมช่วงวันจากทุก specificSetting[i].period เท่านั้น
+      const startDates: Date[] = [];
+      const endDates: Date[] = [];
+
+      if (Array.isArray(setting.specificSetting)) {
+        for (const s of setting.specificSetting) {
+          if (s?.period?.startDate) startDates.push(new Date(s.period.startDate));
+          if (s?.period?.endDate) endDates.push(new Date(s.period.endDate));
         }
+      }
+
+      if (startDates.length === 0 && endDates.length === 0) {
+        throw new Error(`No period range configured for '${periodName}'`);
+      }
+
+      const startDate = startDates.length
+        ? new Date(Math.min(...startDates.map(d => d.getTime())))
+        : undefined;
+
+      const endDate = endDates.length
+        ? new Date(Math.max(...endDates.map(d => d.getTime())))
+        : undefined;
+
+      return {
+        name: setting.settingProfileName as string,
+        startDate,
+        endDate,
+      };
+    } catch (error) {
+      console.error("Error getting period:", error);
+      throw error;
     }
+  }
 
-    static async makeDataPartitionWithDate(periodFilter: PeriodFilter) {
-        try {
-            // กรองข้อมูลตามช่วงเวลาใน periodFilter
-            const dataPartition = await ChartDetailModel.find({
-                "chartGeneralDetail.collectedDate": {
-                    $gte: periodFilter.startDate,
-                    $lte: periodFilter.endDate
-                }
-            }).lean(); // ใช้ lean() เพื่อ performance
-            console.log(`This is number of Partitioned Data ${dataPartition.toLocaleString}`);
+  static async makeDataPartitionWithDate(periodFilter: PeriodFilter) {
+    try {
+      const start = new Date(periodFilter.startDate);
+      const end = new Date(periodFilter.endDate);
 
-            return {
-                data: dataPartition,
-                count: dataPartition.length,
-                periodInfo: {
-                    startDate: periodFilter.startDate,
-                    endDate: periodFilter.endDate
-                }
-            };
+      const dataPartition = await ChartDetailModel.find({
+        "chartGeneralDetail.collectedDate": { $gte: start, $lte: end },
+      }).lean();
 
-        } catch (error) {
-            console.error('Error making data partition:', error);
-            throw error;
+      console.log(
+        `This is number of Partitioned Data ${dataPartition.length.toLocaleString()}`
+      );
+
+      return {
+        data: dataPartition,
+        count: dataPartition.length,
+        periodInfo: {
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+        },
+      };
+    } catch (error) {
+      console.error("Error making data partition:", error);
+      throw error;
+    }
+  }
+
+  static async FilterChartDetail(settingFiltering: Setting, preFilteredData?: any[]) {
+    try {
+      const specifics = Array.isArray(settingFiltering.specificSetting)
+        ? settingFiltering.specificSetting
+        : [];
+
+      // ---------- กรณีมี pre-filtered data ----------
+      if (preFilteredData && preFilteredData.length > 0) {
+        let filtered = preFilteredData;
+
+        if (specifics.length > 0) {
+          // กรองตามคู่ cpNo + furnaceNo ก่อน
+          const keySet = new Set(
+            specifics.map(s => `${s.cpNo}::${s.furnaceNo}`)
+          );
+          filtered = filtered.filter(item =>
+            keySet.has(`${item.CPNo}::${item.chartGeneralDetail?.furnaceNo}`)
+          );
+
+          // กรองตามช่วงเวลาแบบ "ต่อรายการ"
+          filtered = filtered.filter(item => {
+            const t = new Date(item.chartGeneralDetail?.collectedDate).getTime();
+            const matchedSpecifics = specifics.filter(
+              s => s.cpNo === item.CPNo && s.furnaceNo === item.chartGeneralDetail?.furnaceNo
+            );
+
+            if (matchedSpecifics.length === 0) return false;
+
+            // ผ่านถ้าเข้าอย่างน้อยหนึ่งช่วงของ specific ที่ตรงกัน
+            return matchedSpecifics.some(s => {
+              const sStart = s.period?.startDate ? new Date(s.period.startDate).getTime() : undefined;
+              const sEnd = s.period?.endDate ? new Date(s.period.endDate).getTime() : undefined;
+
+              if (sStart && t < sStart) return false;
+              if (sEnd && t > sEnd) return false;
+              return true; // ไม่มี start/end ถือว่าไม่จำกัดช่วงเวลา
+            });
+          });
         }
+
+        return { data: filtered, count: filtered.length };
+      }
+
+      // ---------- กรณี query DB ----------
+      if (specifics.length > 0) {
+        // สร้าง $or ที่ผูกช่วงเวลาของแต่ละ specific กับคู่ cp/furnace ของรายการนั้น
+        const orBranches = specifics.map(s => {
+          const branch: any = {
+            CPNo: s.cpNo,
+            "chartGeneralDetail.furnaceNo": s.furnaceNo,
+          };
+          const sStart = s.period?.startDate ? new Date(s.period.startDate) : undefined;
+          const sEnd = s.period?.endDate ? new Date(s.period.endDate) : undefined;
+
+          if (sStart || sEnd) {
+            const dq: any = {};
+            if (sStart) dq.$gte = sStart;
+            if (sEnd) dq.$lte = sEnd;
+            branch["chartGeneralDetail.collectedDate"] = dq;
+          }
+          return branch;
+        });
+
+        const partitionedData = await ChartDetailModel.find({ $or: orBranches }).lean();
+        return { data: partitionedData, count: partitionedData.length };
+      }
+
+      // ไม่กำหนดเงื่อนไข -> คืนทั้งหมด
+      const all = await ChartDetailModel.find({}).lean();
+      return { data: all, count: all.length };
+    } catch (error) {
+      console.error("Error in FilterChartDetail:", error);
+      throw error;
     }
-    static async FilterChartDetail(settingFiltering: Setting, preFilteredData?: any[]) {
-        try {
-            // If pre-filtered data is provided, filter from that data
-            if (preFilteredData && preFilteredData.length > 0) {
-                let filteredData = preFilteredData;
-
-                // Apply specific settings filter on pre-filtered data
-                if (settingFiltering.specificSetting?.length > 0) {
-                    filteredData = preFilteredData.filter(item => {
-                        return settingFiltering.specificSetting.some(setting => 
-                            item.CPNo === setting.cpNo && 
-                            item.chartGeneralDetail?.furnaceNo === setting.furnaceNo
-                        );
-                    });
-                }
-
-                return {
-                    data: filteredData,
-                    count: filteredData.length
-                };
-            }
-
-            // Original database query if no pre-filtered data
-            const queryConditions: any = {};
-
-            if (settingFiltering.specificSetting?.length > 0) {
-                queryConditions.$or = settingFiltering.specificSetting.map(setting => ({
-                    "CPNo": setting.cpNo,
-                    "chartGeneralDetail.furnaceNo": setting.furnaceNo
-                }));
-            }
-
-            if (settingFiltering.generalSetting?.period) {
-                const { startDate, endDate } = settingFiltering.generalSetting.period;
-                const dateQuery: any = {};
-                
-                if (startDate) dateQuery.$gte = startDate;
-                if (endDate) dateQuery.$lte = endDate;
-                
-                if (Object.keys(dateQuery).length > 0) {
-                    queryConditions["chartGeneralDetail.collectedDate"] = dateQuery;
-                }
-            }
-
-            const partitionedData = await ChartDetailModel.find(queryConditions).lean();
-
-            return {
-                data: partitionedData,
-                count: partitionedData.length
-            };
-
-        } catch (error) {
-            console.error('Error in FilterChartDetail:', error);
-            throw error;
-        }
-    }
+  }
 }

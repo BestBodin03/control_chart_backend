@@ -347,7 +347,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
                 average: Number(average.toFixed(3)),
-                cdeAvergae: Number(cdeAverage.toFixed(3)),
+                cdeAverage: Number(cdeAverage.toFixed(3)),
                 cdtAverage: Number(cdtAverage.toFixed(3)),
                 MRAverage: Number(mrAverage.toFixed(3)),
                 cdeMRAverage: Number(cdeMrAverage.toFixed(3)),
@@ -406,6 +406,9 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                     UCL: Number(cdtMrChartUCL.toFixed(3)),
                     LCL: Number(cdtMrChartLCL.toFixed(3))
                 },
+                surfaceHardnessChartSpots: hardnessValues ,
+                cdeChartSpots: cdeValues,
+                cdtChartSpots: cdtValues,
                 mrChartSpots: movingRanges,
                 cdeMrChartSpots: cdeMovingRanges,
                 cdtMrChartSpots: cdtMovingRanges,

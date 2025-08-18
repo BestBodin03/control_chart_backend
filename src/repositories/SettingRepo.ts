@@ -1,7 +1,7 @@
-import { Setting, SettingData, SettingModel } from "../models/entities/setting";
+import { Setting, SettingResponse, SettingModel } from "../models/entities/setting";
 
 export class SettingRepository {
-    async create(settingData: SettingData[]): Promise<Setting> {
+    async create(settingData: SettingResponse[]): Promise<Setting> {
         try {
             const settingInstance = new SettingModel(settingData);
             const result = await settingInstance.save();
@@ -15,7 +15,7 @@ export class SettingRepository {
         }
     }
 
-    async update(id: string, updateData: Partial<SettingData>): Promise<Setting | null> {
+    async update(id: string, updateData: Partial<SettingResponse>): Promise<Setting | null> {
         try {
             const result = await SettingModel.findByIdAndUpdate(
                 id, 

@@ -1,4 +1,4 @@
-import { SettingData } from "../models/entities/setting";
+import { SettingResponse } from "../models/entities/setting";
 import { SettingService } from "../services/settingService";
 import {Request, Response} from 'express';
 import { settingService } from "../utils/serviceLocator";
@@ -8,7 +8,7 @@ export class SettingController {
 
   async createSetting(req: Request, res: Response): Promise<void> {
     try {
-      const settingData: SettingData = req.body;
+      const settingData: SettingResponse = req.body;
       
       const result = await settingService.createSettingProfile(settingData);
       
