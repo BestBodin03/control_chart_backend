@@ -1,55 +1,113 @@
-import z from "zod";
+import { z } from "zod";
+import { Types } from "mongoose";
+import { displayTypeLiterals, displayTypeSchema } from "../enums/displayType";
+import { periodTypeLiterals, periodTypeSchema } from "../enums/periodType";
 
-// DisplayType
-export const DisplayTypeSchema = z.enum(['Furnace', 'Furnace/CP', 'CPNo.']);
-export type DisplayType = z.infer<typeof DisplayTypeSchema>;
-
-// PeriodType
-export const PeriodTypeSchema = z.enum(['thisMonth', '3months', '6months', '1year', 'custom', 'anyTime']);
-export type PeriodType = z.infer<typeof PeriodTypeSchema>;
-
-// MainPeriod
-export const PeriodSchema = z.object({
-  type: PeriodTypeSchema,
-  startDate: z.coerce.date().optional(),
-  endDate: z.coerce.date().optional()
-}).refine(
-  (data) => {
-    if (data.type === 'custom') {
-      return data.startDate && data.endDate && data.startDate <= data.endDate;
-    }
-    return !data.startDate && !data.endDate;
-  },
-  { 
-    message: "I do not know." 
-  }
-);
-
-// General Setting
-export const GeneralSettingSchema = z.object({
-  chartChangeInterval: z.number().min(1).max(3600), 
-  period: PeriodSchema
-});
-
-// Specific Setting 
-export const SpecificSettingSchema = z.object({
-  furnaceNo: z.number().min(1),
-  cpNo: z.string().min(1).max(50)
-});
-
-// Main Setting 
-export const SettingSchema = z.object({
+export const settingEntitySchema = z.object({
+  _id: z.instanceof(Types.ObjectId), // MongoDB document _id
   settingProfileName: z.string().min(1).max(100),
   isUsed: z.boolean(),
-  displayType: DisplayTypeSchema,
-  generalSetting: GeneralSettingSchema,
-  specificSetting: z.array(SpecificSettingSchema).min(1).max(10) // At least 1, max 10 settings
+  displayType: z.enum(displayTypeLiterals), // "Furnace" | "Furnace/CP" | "CP"
+  generalSetting: z.object({
+    chartChangeInterval: z.number().min(10).max(3600),
+    nelsonRule: z.array(
+      z.object({
+        ruleId: z.number(),
+        ruleName: z.string(),
+        ruleDescription: z.string(),
+        ruleIndicated: z.string(),
+        isUsed: z.boolean(),
+      })
+    )
+  }),
+  specificSetting: z.array(
+    z.object({
+      period: z.object({
+        type: z.enum(periodTypeLiterals), // "1Month" | "3months" | ...
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+      }),
+      furnaceNo: z.number().int().min(1),
+      cpNo: z.string().min(1).max(50),
+    })
+  ),
+  createdAt: z.date(),
+  updatedAt: z.date(),
 });
 
-// Zod Schema for Creating Setting (without timestamps)
-export const CreateSettingSchema = SettingSchema;
+export type SettingEntity = z.infer<typeof settingEntitySchema>;
 
-// Zod Schema for Updating Setting (all fields optional except id)
-export const UpdateSettingSchema = SettingSchema.partial().extend({
-  _id: z.string() // MongoDB ObjectId as string
+export const settingDTOSchema = z.object({
+  id: z.string().optional(),
+
+  settingProfileName: z.string().min(1).max(100),
+  isUsed: z.boolean(),
+  displayType: displayTypeSchema,
+
+  generalSetting: z.object({
+    chartChangeInterval: z.number().min(10).max(3600),
+    nelsonRule: z.array(
+      z.object({
+        ruleId: z.number(),
+        ruleName: z.string(),
+        ruleDescription: z.string(),
+        ruleIndicated: z.string(),
+        isUsed: z.boolean(),
+      })
+    )
+  }),
+
+  specificSetting: z.array(
+    z.object({
+      period: z.object({
+        type: periodTypeSchema,
+        startDate: z.string().datetime(),
+        endDate: z.string().datetime(),
+      }),
+      furnaceNo: z.number().int().min(1),
+      cpNo: z.string().min(1).max(50),
+    })
+  ).min(1),
+
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
+
+export type SettingDTO = z.infer<typeof settingDTOSchema>;
+
+export const SettingDTO = {
+  convertFromEntity(entity: SettingEntity): SettingDTO {
+    const candidate: SettingDTO = {
+      id: entity._id.toHexString(),
+      settingProfileName: entity.settingProfileName,
+      isUsed: entity.isUsed,
+      displayType: entity.displayType,
+
+      generalSetting: {
+        chartChangeInterval: entity.generalSetting.chartChangeInterval,
+        nelsonRule: entity.generalSetting.nelsonRule.map((r) => ({
+          ruleId: r.ruleId,
+          ruleName: r.ruleName,
+          ruleDescription: r.ruleDescription,
+          ruleIndicated: r.ruleIndicated,
+          isUsed: r.isUsed,
+        })),
+      },
+
+      specificSetting: entity.specificSetting.map((s) => ({
+        period: {
+          type: s.period.type,
+          startDate: s.period.startDate ? s.period.startDate.toISOString() : '-',
+          endDate: s.period.endDate ? s.period.endDate.toISOString() : '-',
+        },
+        furnaceNo: s.furnaceNo,
+        cpNo: s.cpNo,
+      })),
+
+      createdAt: entity.createdAt.toISOString(),
+      updatedAt: entity.updatedAt.toISOString(),
+    };
+    return settingDTOSchema.parse(candidate);
+  },
+};
+

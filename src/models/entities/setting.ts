@@ -1,18 +1,16 @@
-import { Document, Schema, model } from "mongoose";
+import { Schema, Model, model } from "mongoose";
 import { DisplayType } from "../enums/displayType";
 import { PeriodType } from "../enums/periodType";
+import { settingEntitySchema } from "../validations/settingValidate";
+import { NelsonRule } from "../../controllers/setting/settingResponse";
 
-export interface Setting extends Document {
+export interface SettingSchema {
   settingProfileName: string;
   isUsed: boolean;
   displayType: DisplayType;
   generalSetting: {
     chartChangeInterval: number;
-    period: {
-      type: PeriodType;
-      startDate?: Date;
-      endDate?: Date;
-    };
+    nelsonRule: NelsonRule[];
   };
   specificSetting: {
     period: {
@@ -27,90 +25,33 @@ export interface Setting extends Document {
   updatedAt: Date;
 }
 
-export interface SettingResponse {
-  settingProfileName: string;
-  isUsed: boolean;
-  displayType: DisplayType;
-  generalSetting: {
-    chartChangeInterval: number;
-    nelsonCondtion: {
-      conditionName: String;
-      conditionNo: number;
-    }[];
-  };
-  specificSetting: {
-    period: {
-      type: PeriodType;
-      startDate?: Date;
-      endDate?: Date;
-    };
-    furnaceNo: number;
-    cpNo: string;
-  }[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const settingSchema = new Schema<Setting>(
+const SettingMongooseSchema = new Schema<SettingSchema>(
   {
-    isUsed: {
-      type:Boolean,
-      required: true,
-      default: true
-    },
-    settingProfileName: { 
-      type: String, 
-      required: true,
-      maxlength: 100
-    },
-    displayType: {
-      type: String,
-      enum: Object.values(DisplayType),
-      required: true,
-    },
+    settingProfileName: { type: String, required: true, maxlength: 100 },
+    isUsed: { type: Boolean, required: true, default: true },
+    displayType: { type: String, required: true }, // add enum if you have literals
     generalSetting: {
-      chartChangeInterval: { 
-        type: Number, 
-        required: true,
-        min: 10,
-        max: 3600
-      },
-      period: {
-        type: {
-          type: String,
-          enum: Object.values(PeriodType),
-          required: true,
-        },
-        startDate: {
-          type: Date,
-          required: function (this: any) {
-            return this.generalSetting?.period?.type === 'custom';
-          },
-        },
-        endDate: {
-          type: Date,
-          required: function (this: any) {
-            return this.generalSetting?.period?.type === 'custom';
-          },
-        },
-      },
+      chartChangeInterval: { type: Number, required: true },
+      nelsonRule:[],
     },
     specificSetting: [
       {
-        furnaceNo: {
-          type: Number,
-          required: true,
-          min: 1,
+        period: {
+          type: {
+            type: String, // add enum if you have literals
+            required: true,
+          },
+          startDate: Date,
+          endDate: Date,
         },
-        cpNo: {
-          type: String,
-          required: true,
-          maxlength: 50,
-        },
+        furnaceNo: { type: Number, required: true },
+        cpNo: { type: String, required: true },
       },
     ],
   },
   { timestamps: true }
 );
 
-export const SettingModel = model<Setting>('Setting', settingSchema);
+export const Setting = model<SettingSchema>('Setting', SettingMongooseSchema);
+
+

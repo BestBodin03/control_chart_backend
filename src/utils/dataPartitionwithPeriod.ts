@@ -1,5 +1,6 @@
 import { ChartDetailModel } from "../models/entities/chartDetail";
-import { Setting, SettingModel } from "../models/entities/setting";
+import { Setting } from "../models/entities/setting";
+import { SettingDTO } from "../models/validations/settingValidate";
 
 export interface PeriodFilter {
   startDate: string; // ISO string
@@ -9,7 +10,7 @@ export interface PeriodFilter {
 export class DataPartitionwithPeriod {
   static async getDateBySettingProfileName(periodName: string) {
     try {
-      const setting = await SettingModel.findOne({
+      const setting = await Setting.findOne({
         settingProfileName: periodName,
       })
         .select("settingProfileName specificSetting.period")
@@ -80,7 +81,7 @@ export class DataPartitionwithPeriod {
     }
   }
 
-  static async FilterChartDetail(settingFiltering: Setting, preFilteredData?: any[]) {
+  static async FilterChartDetail(settingFiltering: SettingDTO, preFilteredData?: any[]) {
     try {
       const specifics = Array.isArray(settingFiltering.specificSetting)
         ? settingFiltering.specificSetting

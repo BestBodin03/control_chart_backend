@@ -1,25 +1,27 @@
 import mongoose, { ClientSession } from "mongoose";
-import { SettingResponse, Setting, SettingModel } from "../models/entities/setting";
+import { Setting } from "../models/entities/setting";
 import { SettingRepository } from "../repositories/settingRepo";
 import { PeriodType } from "../models/enums/periodType";
 import { TimeConverter } from "../utils/timeConvertor";
+import { SettingResponse } from "../controllers/setting/settingResponse";
+import { SettingDTO } from "../models/validations/settingValidate";
 
 export class SettingService {
 
-  async createSettingProfile(settingData: SettingResponse): Promise<Setting> {
+  async createSettingProfile(settingData: SettingResponse): Promise<SettingDTO> {
     try {
       // ✅ Use TimeConverter to get date range based on period type
       const enhancedSettingData = await this.updateSettingWithTimeConverter(settingData);
 
       // ✅ Deactivate other settings if this one is active
       if (enhancedSettingData.isUsed) {
-        await SettingModel.updateMany(
+        await Setting.updateMany(
           { isUsed: true },
           { $set: { isUsed: false } }
         );
       }
 
-      const result = await SettingModel.create(enhancedSettingData);
+      const result = await Setting.create(enhancedSettingData);
       return result;
 
     } catch (error: any) {
@@ -76,9 +78,9 @@ export class SettingService {
   }
 
 
-  async getAllSettingProfiles(): Promise<Setting[]> {
+  async getAllSettingProfiles(): Promise<SettingDTO[]> {
     try {
-      const settings = await SettingModel
+      const settings = await Setting
         .find({})
         .sort({ createdAt: -1 })
         .exec();
@@ -89,20 +91,20 @@ export class SettingService {
     }
   }
 
-  async refreshSettingDates(settingId: string, newPeriodType?: PeriodType): Promise<Setting | null> {
+  async refreshSettingDates(settingId: string, newPeriodType?: PeriodType): Promise<SettingDTO | null> {
     try {
-      const existingSetting = await SettingModel.findById(settingId);
+      const existingSetting = await Setting.findById(settingId);
       if (!existingSetting) {
         throw new Error('Setting not found');
       }
 
       // ✅ Use new period type or existing one
-      const periodType = newPeriodType || existingSetting.generalSetting.period.type;
+      const periodType = newPeriodType || existingSetting.generalSetting?.period.type;
       
       // ✅ Use TimeConverter to get fresh date range
       const dateRange = TimeConverter.toDateRange(periodType);
 
-      const updatedSetting = await SettingModel.findByIdAndUpdate(
+      const updatedSetting = await Setting.findByIdAndUpdate(
         settingId,
         {
           $set: {
@@ -126,7 +128,7 @@ export class SettingService {
     endDate: Date;
   }> {
     try {
-      const setting = await SettingModel.findById(settingId);
+      const setting = await Setting.findById(settingId);
       if (!setting) {
         throw new Error('Setting not found');
       }

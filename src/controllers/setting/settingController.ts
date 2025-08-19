@@ -1,7 +1,7 @@
-import { SettingResponse } from "../models/entities/setting";
-import { SettingService } from "../services/settingService";
+import { SettingService } from "../../services/settingService";
 import {Request, Response} from 'express';
-import { settingService } from "../utils/serviceLocator";
+import { settingService } from "../../utils/serviceLocator";
+import { SettingResponse } from "./settingResponse";
 
 export class SettingController {
   constructor(settingService: SettingService) {}
@@ -29,6 +29,15 @@ export class SettingController {
         });
       }
   };
+
+  async updateSetting(req: Request, res: Response) {
+
+  }
+
+  async deleteSetting(req: Request, res: Response): Promise<void> {
+
+  }
+
 
   async getAllSettings(req: Request, res: Response): Promise<void> {
     try {
