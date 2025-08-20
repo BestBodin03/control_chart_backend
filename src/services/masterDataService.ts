@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
 import { CustomerProductData, CustomerProduct } from "../models/entities/customerProduct";
-import { FurnaceData, Furnace } from "../models/entities/furnace";
+import { FurnaceData, Furnace, FurnaceModel } from "../models/entities/furnace";
 import { ChartDetailService } from "./chartDetailService";
 import { CustomerProductService } from "./customerProductService";
 import { FurnaceService } from "./furnaceService";
@@ -29,6 +29,7 @@ export class MasterDataService {
         furnaceNo: record.furnace_number,
         furnaceDescription: record.furnace_description || "-",
         isDisplay: record.is_active,
+        cpNo: [record.lot_number || "N/A"],
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -90,6 +91,29 @@ export class MasterDataService {
       const furnaceDataArray = mappedData.map(m => m.furnaceData);
       const createdFurnaces = await furnaceService.bulkCreateUniqueFurnaces(furnaceDataArray);
       console.log(`✅ Created ${createdFurnaces.length} unique furnaces`);
+
+      // ✅ 3.1 รวม CP ต่อ furnaceNo แล้วอัปเดต cpNo แบบไม่ซ้ำ
+      const furnaceCpIndex = new Map<number, Set<string>>();
+      for (const { furnaceData } of mappedData) {
+        if (!furnaceCpIndex.has(furnaceData.furnaceNo)) {
+          furnaceCpIndex.set(furnaceData.furnaceNo, new Set());
+        }
+        for (const cp of furnaceData.cpNo || []) {
+          if (cp) furnaceCpIndex.get(furnaceData.furnaceNo)!.add(cp);
+        }
+      }
+
+      if (furnaceCpIndex.size > 0) {
+        const ops = Array.from(furnaceCpIndex.entries()).map(([furnaceNo, cpSet]) => ({
+          updateOne: {
+            filter: { furnaceNo },
+            update: { $addToSet: { cpNo: { $each: Array.from(cpSet) } } }, // ✅ กันซ้ำ
+            upsert: true                                                    // เผื่อยังไม่มีเอกสาร
+          }
+        }));
+        const bulkRes = await FurnaceModel.bulkWrite(ops);
+        console.log(`✅ Furnace cpNo merged: matched=${bulkRes.matchedCount}, modified=${bulkRes.modifiedCount}, upserted=${bulkRes.upsertedCount}`);
+      }
 
       // 4. Get all furnaces for reference
       const allFurnaces = await furnaceService.getAllFurnaces();

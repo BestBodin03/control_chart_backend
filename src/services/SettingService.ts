@@ -1,175 +1,99 @@
-import mongoose, { ClientSession } from "mongoose";
-import { Setting } from "../models/entities/setting";
-import { SettingRepository } from "../repositories/settingRepo";
-import { PeriodType } from "../models/enums/periodType";
+import { fromEntity, toEntity } from "../models/mapper/settingMapper";
+import { CreateSettingProfileRequest, SettingDTO, SettingEntity, UpdateSettingProfileRequest } from "../models/validations/settingValidate";
+import { assertAllowedFurnaceCp } from "../utils/furnaceAndCpChecker";
+import { cpRepository, furnaceRepository, settingRepository } from "../utils/serviceLocator";
 import { TimeConverter } from "../utils/timeConvertor";
-import { SettingResponse } from "../controllers/setting/settingResponse";
-import { SettingDTO } from "../models/validations/settingValidate";
 
 export class SettingService {
-
-  async createSettingProfile(settingData: SettingResponse): Promise<SettingDTO> {
+  async addSettingProfile(req: CreateSettingProfileRequest): Promise<SettingDTO> {
     try {
-      // ✅ Use TimeConverter to get date range based on period type
-      const enhancedSettingData = await this.updateSettingWithTimeConverter(settingData);
+      await assertAllowedFurnaceCp(req, furnaceRepository);
 
-      // ✅ Deactivate other settings if this one is active
-      if (enhancedSettingData.isUsed) {
-        await Setting.updateMany(
-          { isUsed: true },
-          { $set: { isUsed: false } }
-        );
-      }
+      const specificSetting = await Promise.all(
+        req.specificSetting.map(async s => {
+          const { startDate, endDate } = TimeConverter.toDateRange(
+            s.period.type,
+            s.period.startDate,
+            s.period.endDate,
+            (s.period as any).customDays
+          );
+          return { ...s, period: { ...s.period, startDate, endDate } };
+        })
+      );
 
-      const result = await Setting.create(enhancedSettingData);
-      return result;
-
-    } catch (error: any) {
-      if (error.code === 11000) {
-        throw new Error('Setting profile name already exists');
-      }
-      throw new Error(error.message || 'Failed to create setting profile');
+      const saved = await settingRepository.create(toEntity({ ...req, specificSetting }));
+      return fromEntity(saved);
+    } catch (e) {
+      throw new Error('Can not create a new setting profile');
     }
   }
 
-  // ✅ Private method to use TimeConverter for date calculation per specificSetting item
-  private async updateSettingWithTimeConverter(settingData: SettingResponse): Promise<SettingResponse> {
-    const updatedSpecific = (settingData.specificSetting ?? []).map(item => {
-      const periodType = item.period.type;
+  async updateSettingProfile(req: UpdateSettingProfileRequest): Promise<SettingDTO> {
+    try {
+      // 1) validate คู่ (furnaceNo, cpNo) กับ master
+      await assertAllowedFurnaceCp(req, furnaceRepository);
 
-      // ✅ Skip this item if CUSTOM and already has both dates
-      if (
-        periodType === PeriodType.CUSTOM &&
-        item.period.startDate &&
-        item.period.endDate
-      ) {
-        return item;
-      }
-
-      // ✅ For ONE_MONTH, allow customDays inside the period (optional), default 30
-      let pastDays: number | undefined;
-      if (periodType === PeriodType.ONE_MONTH) {
-        pastDays = (item.period as any).customDays ?? 30;
-      }
-
-      // ✅ Use TimeConverter utility to get date range for this item
-      const dateRange = TimeConverter.toDateRange(
-        periodType,
-        item.period.startDate, // customStart for CUSTOM
-        item.period.endDate,   // customEnd for CUSTOM
-        pastDays               // for ONE_MONTH
+      // 2) คำนวณช่วงวันที่ให้ชัด (immutable ไม่แก้ object เดิม)
+      const specificSetting = await Promise.all(
+        req.specificSetting.map(async s => {
+          const { startDate, endDate } = TimeConverter.toDateRange(
+            s.period.type,
+            s.period.startDate,
+            s.period.endDate,
+            (s.period as any).customDays
+          );
+          return { ...s, period: { ...s.period, startDate: Date, endDate: Date } };
+        })
       );
 
-      return {
-        ...item,
-        period: {
-          ...item.period,
-          startDate: dateRange.startDate,
-          endDate: dateRange.endDate,
+      // 3) สร้างเอกสารสำหรับอัปเดต (อย่าตั้ง _id/createdAt ใหม่)
+      const updateDoc: Partial<SettingEntity> = {
+        settingProfileName: req.settingProfileName,
+        isUsed: req.isUsed,
+        displayType: req.displayType,
+        generalSetting: {
+          chartChangeInterval: req.generalSetting.chartChangeInterval,
+          nelsonRule: req.generalSetting.nelsonRule.map(r => ({
+            ruleId: r.ruleId,
+            ruleName: r.ruleName,
+            ruleDescription: r.ruleDescription,
+            ruleIndicated: r.ruleIndicated,
+            isUsed: r.isUsed,
+          })),
         },
+        specificSetting: specificSetting.map(sp => ({
+          period: {
+            type: sp.period.type,
+            startDate: sp.period.startDate,
+            endDate: sp.period.endDate,
+          },
+          furnaceNo: sp.furnaceNo,
+          cpNo: sp.cpNo,
+        })),
+        updatedAt: new Date(),
       };
-    });
 
-    // ✅ Return updated object: generalSetting stays as-is, only specificSetting updated
-    return {
-      ...settingData,
-      specificSetting: updatedSpecific,
-    };
-  }
-
-
-  async getAllSettingProfiles(): Promise<SettingDTO[]> {
-    try {
-      const settings = await Setting
-        .find({})
-        .sort({ createdAt: -1 })
-        .exec();
-
-      return settings;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to retrieve setting profiles');
-    }
-  }
-
-  async refreshSettingDates(settingId: string, newPeriodType?: PeriodType): Promise<SettingDTO | null> {
-    try {
-      const existingSetting = await Setting.findById(settingId);
-      if (!existingSetting) {
-        throw new Error('Setting not found');
+      // 4) เรียก repo อัปเดตตาม id (ให้ repo คืน entity หลังอัปเดต)
+      const updated = await settingRepository.updateById(req.id, updateDoc);
+      if (!updated) {
+        throw new Error("Setting profile not found");
       }
 
-      // ✅ Use new period type or existing one
-      const periodType = newPeriodType || existingSetting.generalSetting?.period.type;
-      
-      // ✅ Use TimeConverter to get fresh date range
-      const dateRange = TimeConverter.toDateRange(periodType);
-
-      const updatedSetting = await Setting.findByIdAndUpdate(
-        settingId,
-        {
-          $set: {
-            'generalSetting.period.type': periodType,
-            'generalSetting.period.startDate': dateRange.startDate,
-            'generalSetting.period.endDate': dateRange.endDate,
-            updatedAt: new Date()
-          }
-        },
-        { new: true }
-      );
-
-      return updatedSetting;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to refresh setting dates');
+      // 5) map Entity -> DTO
+      return fromEntity(updated);
+    } catch (e) {
+      throw new Error("Can not update setting profile");
     }
   }
 
-  async getSettingDateRange(settingId: string): Promise<{
-    startDate: Date;
-    endDate: Date;
-  }> {
-    try {
-      const setting = await Setting.findById(settingId);
-      if (!setting) {
-        throw new Error('Setting not found');
-      }
 
-      // ✅ Use TimeConverter to get current date range
-      const dateRange = TimeConverter.toDateRange(
-        setting.generalSetting.period.type,
-        setting.generalSetting.period.startDate,
-        setting.generalSetting.period.endDate
-      );
+  // deleteSettingProfile(req: SettingDTO): Promise<void>{
 
-      return {
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate
-      };
+  // }
 
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to get setting date range');
-    }
-  }
+  // searchSettingProfile(dto: SettingDTO): Promise<SettingDTO>{
 
-  async validatePeriodConfiguration(periodType: PeriodType, startDate?: Date, endDate?: Date): Promise<{
-    isValid: boolean;
-    dateRange?: { startDate: Date; endDate: Date };
-    error?: string;
-  }> {
-    try {
-      // ✅ Try to get date range using TimeConverter
-      const dateRange = TimeConverter.toDateRange(periodType, startDate, endDate);
+  // }
 
-      return {
-        isValid: true,
-        dateRange
-      };
-
-    } catch (error: any) {
-      return {
-        isValid: false,
-        error: error.message
-      };
-    }
-  }
-
+  // getAllSettingProfile
 }

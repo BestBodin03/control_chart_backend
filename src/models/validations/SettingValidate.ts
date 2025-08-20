@@ -4,18 +4,18 @@ import { displayTypeLiterals, displayTypeSchema } from "../enums/displayType";
 import { periodTypeLiterals, periodTypeSchema } from "../enums/periodType";
 
 export const settingEntitySchema = z.object({
-  _id: z.instanceof(Types.ObjectId), // MongoDB document _id
+  _id: z.instanceof(Types.ObjectId),
   settingProfileName: z.string().min(1).max(100),
   isUsed: z.boolean(),
-  displayType: z.enum(displayTypeLiterals), // "Furnace" | "Furnace/CP" | "CP"
+  displayType: z.enum(displayTypeLiterals),
   generalSetting: z.object({
     chartChangeInterval: z.number().min(10).max(3600),
     nelsonRule: z.array(
       z.object({
         ruleId: z.number(),
         ruleName: z.string(),
-        ruleDescription: z.string(),
-        ruleIndicated: z.string(),
+        ruleDescription: z.string().optional(),
+        ruleIndicated: z.string().optional(),
         isUsed: z.boolean(),
       })
     )
@@ -23,7 +23,7 @@ export const settingEntitySchema = z.object({
   specificSetting: z.array(
     z.object({
       period: z.object({
-        type: z.enum(periodTypeLiterals), // "1Month" | "3months" | ...
+        type: z.enum(periodTypeLiterals),
         startDate: z.date().optional(),
         endDate: z.date().optional(),
       }),
@@ -50,8 +50,8 @@ export const settingDTOSchema = z.object({
       z.object({
         ruleId: z.number(),
         ruleName: z.string(),
-        ruleDescription: z.string(),
-        ruleIndicated: z.string(),
+        ruleDescription: z.string().optional(),
+        ruleIndicated: z.string().optional(),
         isUsed: z.boolean(),
       })
     )
@@ -61,8 +61,8 @@ export const settingDTOSchema = z.object({
     z.object({
       period: z.object({
         type: periodTypeSchema,
-        startDate: z.string().datetime(),
-        endDate: z.string().datetime(),
+        startDate: z.string().datetime().optional(),
+        endDate: z.string().datetime().optional(),
       }),
       furnaceNo: z.number().int().min(1),
       cpNo: z.string().min(1).max(50),
@@ -75,7 +75,7 @@ export const settingDTOSchema = z.object({
 
 export type SettingDTO = z.infer<typeof settingDTOSchema>;
 
-export const SettingDTO = {
+export const settingDTO = {
   convertFromEntity(entity: SettingEntity): SettingDTO {
     const candidate: SettingDTO = {
       id: entity._id.toHexString(),
@@ -110,4 +110,55 @@ export const SettingDTO = {
     return settingDTOSchema.parse(candidate);
   },
 };
+
+
+export const requiredCoercedDate = z.coerce.date({
+  required_error: "date is required",
+  invalid_type_error: "invalid date",
+});
+
+// derive create schema but override dates to be Date (not string)
+export const createSettingProfileRequestSchema = settingDTOSchema
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    specificSetting: true,
+  })
+  .extend({
+    specificSetting: z.array(z.object({
+      period: z.object({
+        type: periodTypeSchema,
+        startDate: requiredCoercedDate, // ← Date
+        endDate:   requiredCoercedDate, // ← Date
+      }),
+      furnaceNo: z.number().int().min(1),
+      cpNo: z.string().min(1).max(50),
+    })).min(1),
+  });
+
+export type CreateSettingProfileRequest = z.infer<typeof createSettingProfileRequestSchema>;
+
+// derive create schema but override dates to be Date (not string)
+export const updateSettingProfileRequestSchema = settingDTOSchema
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    specificSetting: true,
+  })
+  .extend({
+    id: z.string(),
+    specificSetting: z.array(z.object({
+      period: z.object({
+        type: periodTypeSchema,
+        startDate: requiredCoercedDate, // ← Date
+        endDate:   requiredCoercedDate, // ← Date
+      }),
+      furnaceNo: z.number().int().min(1),
+      cpNo: z.string().min(1).max(50),
+    })).min(1),
+  });
+
+export type UpdateSettingProfileRequest = z.infer<typeof updateSettingProfileRequestSchema>;
+
 

@@ -1,10 +1,11 @@
-import { Schema, Model, model } from "mongoose";
+import { Document, Schema, Types, model } from "mongoose";
 import { DisplayType } from "../enums/displayType";
 import { PeriodType } from "../enums/periodType";
 import { settingEntitySchema } from "../validations/settingValidate";
 import { NelsonRule } from "../../controllers/setting/settingResponse";
 
 export interface SettingSchema {
+  _id: Types.ObjectId;
   settingProfileName: string;
   isUsed: boolean;
   displayType: DisplayType;
@@ -15,8 +16,8 @@ export interface SettingSchema {
   specificSetting: {
     period: {
       type: PeriodType;
-      startDate?: Date;
-      endDate?: Date;
+      startDate: Date;
+      endDate: Date;
     };
     furnaceNo: number;
     cpNo: string;
@@ -27,7 +28,7 @@ export interface SettingSchema {
 
 const SettingMongooseSchema = new Schema<SettingSchema>(
   {
-    settingProfileName: { type: String, required: true, maxlength: 100 },
+    settingProfileName: { type: String, required: true, maxlength: 100 , unique: true},
     isUsed: { type: Boolean, required: true, default: true },
     displayType: { type: String, required: true }, // add enum if you have literals
     generalSetting: {

@@ -56,7 +56,7 @@ export class TimeConverter {
           endDate: customEnd
         };
 
-      case PeriodType.ANY_TIME:
+      case PeriodType.LIFETIME:
         return {
           startDate: new Date('1970-01-01'),
           endDate: now
@@ -68,7 +68,7 @@ export class TimeConverter {
   }
 
   static toMongoQuery(fieldName: string, periodType: PeriodType, customStart?: Date, customEnd?: Date, pastDays?: number): any {
-    if (periodType === PeriodType.ANY_TIME) {
+    if (periodType === PeriodType.LIFETIME) {
       return {};
     }
 

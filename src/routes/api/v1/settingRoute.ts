@@ -1,14 +1,10 @@
 import { Router } from "express";
-import { settingService } from "../../../utils/serviceLocator";
+import { settingController } from "../../../controllers/setting/settingController";
 
 const router = Router();
 
-router.post('/settings', async (req, res) => {
-  settingService.createSettingProfile(req.body);
-});
-
-router.get('/settings', async (req, res) => {
-  settingService.getAllSettingProfiles();
+router.post("/setting/create", async (req, res) => {
+  settingController.addSettingProfile(req, res);
 });
 
 export { router as settingRoutes };

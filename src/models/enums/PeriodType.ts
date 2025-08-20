@@ -1,21 +1,21 @@
 import { z } from "zod";
 
 export const PeriodType = {
-  ONE_MONTH: "1Month",
-  THREE_MONTHS: "3months",
-  SIX_MONTHS: "6months",
-  ONE_YEAR: "1year",
-  CUSTOM: "custom",
-  ANY_TIME: "anyTime",
+  ONE_MONTH: "ONE_MONTH",
+  THREE_MONTHS: "THREE_MONTHS",
+  SIX_MONTHS: "SIX_MONTHS",
+  ONE_YEAR: "ONE_YEAR",
+  CUSTOM: "CUSTOM",
+  LIFETIME: "LIFETIME",
 } as const;
 
 export const periodTypeLiterals = [
-  "1Month",
-  "3months",
-  "6months",
-  "1year",
-  "custom",
-  "anyTime",
+  "ONE_MONTH",
+  "THREE_MONTHS",
+  "SIX_MONTHS",
+  "ONE_YEAR",
+  "CUSTOM",
+  "LIFETIME",
 ] as const;
 
 export const periodTypeSchema = z.enum(periodTypeLiterals);

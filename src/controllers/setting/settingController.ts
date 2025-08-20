@@ -1,63 +1,60 @@
+// controllers/setting.controller.ts
+import { Request, Response } from "express";
 import { SettingService } from "../../services/settingService";
-import {Request, Response} from 'express';
-import { settingService } from "../../utils/serviceLocator";
-import { SettingResponse } from "./settingResponse";
+import { createSettingProfileRequestSchema, updateSettingProfileRequestSchema } from "../../models/validations/settingValidate";
 
-export class SettingController {
-  constructor(settingService: SettingService) {}
+class SettingController {
+  constructor(private readonly service: SettingService) {}
 
-  async createSetting(req: Request, res: Response): Promise<void> {
+  async addSettingProfile(req: Request, res: Response): Promise<void> {
     try {
-      const settingData: SettingResponse = req.body;
-      
-      const result = await settingService.createSettingProfile(settingData);
-      
+      const serviceDTO = createSettingProfileRequestSchema.parse(req.body);
+
+      const result = await this.service.addSettingProfile(serviceDTO);
+
       res.json({
-          status: "success",
-          statusCode: res.statusCode,
-          data: result
+        status: "success",
+        statusCode: res.statusCode,
+        data: result,
       });
-    } catch (e: any) {
-        res.json({
-            status: "error",
+    }catch (e: any) {
+        if (e.name === "ZodError") {
+          res.status(400).json({ 
+            status: "error", 
             statusCode: res.statusCode,
-            error: {
-            message: e.message,
-            path: req.originalUrl,
-            timeStamp: Date.now()
-            }
-        });
+            error: { message: "Validation failed", issues: e.issues } });
+        }
+          res.status(500).json({ 
+            status: "error",
+            statusCode: 500, 
+            error: { message: "Internal Server Error", } });
       }
-  };
-
-  async updateSetting(req: Request, res: Response) {
-
   }
 
-  async deleteSetting(req: Request, res: Response): Promise<void> {
-
-  }
-
-
-  async getAllSettings(req: Request, res: Response): Promise<void> {
+  async updateSettingProfile(req: Request, res: Response): Promise<void> {
     try {
-      const result = await settingService.getAllSettingProfiles();
-      
+      const serviceDTO = updateSettingProfileRequestSchema.parse(req.body);
+
+      const result = await this.service.updateSettingProfile(serviceDTO);
+
       res.json({
-          status: "success",
-          statusCode: res.statusCode,
-          result
+        status: "success",
+        statusCode: res.statusCode,
+        data: result,
       });
-    } catch (e: any) {
-        res.json({
-            status: "error",
+    }catch (e: any) {
+        if (e.name === "ZodError") {
+          res.status(400).json({ 
+            status: "error", 
             statusCode: res.statusCode,
-            error: {
-            message: e.message,
-            path: req.originalUrl,
-            timeStamp: Date.now()
-            }
-        });
-    }
-  };
+            error: { message: "Validation failed", issues: e.issues } });
+        }
+          res.status(500).json({ 
+            status: "error",
+            statusCode: 500, 
+            error: { message: "Internal Server Error", } });
+      }
+  }
 }
+
+export const settingController = new SettingController(new SettingService());

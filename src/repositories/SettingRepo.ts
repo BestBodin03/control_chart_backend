@@ -1,45 +1,48 @@
-import { ObjectId } from "mongodb";
-import { SettingResponse } from "../controllers/setting/settingResponse";
-import { Setting } from "../models/entities/setting";
-// import { Setting, SettingModel } from "../models/entities/setting";
-import { SettingDTO, settingEntitySchema } from "../models/validations/settingValidate";
+import { Setting, SettingSchema } from "../models/entities/setting";
+import { CreateSettingProfileRequest, SettingDTO, SettingEntity, settingEntitySchema } from "../models/validations/settingValidate";
 
 export class SettingRepository {
-async create(dto: Omit<SettingDTO, "id">): Promise<SettingDTO>{
-    try {
-        const item = settingEntitySchema.parse({
-            ...dto,
-            _id: new ObjectId(),
-        });
-        const {insertedId} = await Setting.insertOne(item);
-        const result = SettingDTO.convertFromEntity({ ...dto, _id: insertedId });
-        return result; // Convert mongoose document to plain object
-    } catch (error: any) {
-        if (error.code === 11000) {
-            console.log('Setting already exists');
-            throw new Error('Duplicate entry');
+    async create(req: SettingEntity): Promise<SettingSchema> {
+        try {
+        const doc = await Setting.create(req);
+        return doc;
+        } catch (e: any) {
+        if (e.code === 11000) {
+            throw new Error("Duplicate setting profile name");
         }
-        throw error;
+        throw new Error("Failed to create a new setting profile");
+        }
     }
-}
 
-async findAll(): Promise<SettingDTO[]> {
-    const results = await Setting.find().lean(); // Use lean() for better performance
-    return results;
-}
+    async findAll(): Promise<SettingSchema[]> {
+        try {
+            const result = await Setting.find().lean();
+            return result;
+        } catch (e) {
+            throw new Error("Failed to get all settings");
+        }
+    }
 
-    // async update(id: string, updateData: Partial<SettingResponse>): Promise<Setting | null> {
-    //     try {
-    //         const result = await SettingModel.findByIdAndUpdate(
-    //             id, 
-    //             updateData, 
-    //             { new: true }
-    //         );
-    //         return result;
-    //     } catch (error: any) {
-    //         console.error('Error updating setting:', error);
-    //         throw error;
-    //     }
-    // }
+    async updateById(id: string, patch: Partial<CreateSettingProfileRequest>): Promise<SettingSchema | null> {
+        try {
+            const result = await Setting.findByIdAndUpdate(id, patch, {
+                new: true,
+                runValidators: true,
+            }).lean<SettingSchema>().exec();
+
+            return result;
+        } catch (e) {
+            throw new Error("Failed to update a setting profile");
+        }
+    }
+
+    async delete(id: string): Promise<void> {
+        try {
+            const res = await Setting.findByIdAndDelete(id).exec();
+            if (!res) throw new Error("Setting profile not found");
+        } catch (e) {
+            throw new Error("Failed to delete a setting profile");
+        }
+    }
 
 }

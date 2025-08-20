@@ -1,14 +1,14 @@
 import z from "zod";
 
 export const DisplayType = {
-  FURNACE: "Furnace",
-  FURNACE_CP: "Furnace/CP",
+  FURNACE: "FURNACE",
+  FURNACE_CP: "FURNAC_CP",
   CP: "CP",
 } as const;
 
 export const displayTypeLiterals = [
-  "Furnace",
-  "Furnace/CP",
+  "FURNACE",
+  "FURNAC_CP",
   "CP",
 ] as const;
 
