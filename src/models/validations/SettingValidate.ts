@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Types } from "mongoose";
+import { now, Types } from "mongoose";
 import { displayTypeLiterals, displayTypeSchema } from "../enums/displayType";
 import { periodTypeLiterals, periodTypeSchema } from "../enums/periodType";
 
@@ -24,8 +24,8 @@ export const settingEntitySchema = z.object({
     z.object({
       period: z.object({
         type: z.enum(periodTypeLiterals),
-        startDate: z.date().optional(),
-        endDate: z.date().optional(),
+        startDate: z.date(),
+        endDate: z.date(),
       }),
       furnaceNo: z.number().int().min(1),
       cpNo: z.string().min(1).max(50),
@@ -37,6 +37,20 @@ export const settingEntitySchema = z.object({
 
 export type SettingEntity = z.infer<typeof settingEntitySchema>;
 
+const nelsonRuleItem = z.object({
+  ruleId: z.number(),
+  ruleName: z.string(),
+  ruleDescription: z.preprocess(
+    v => v === null ? undefined : v,
+    z.string().optional()
+  ),
+  ruleIndicated: z.preprocess(
+    v => v === null ? undefined : v,
+    z.string().optional()
+  ),
+  isUsed: z.boolean(),
+});
+
 export const settingDTOSchema = z.object({
   id: z.string().optional(),
 
@@ -46,15 +60,7 @@ export const settingDTOSchema = z.object({
 
   generalSetting: z.object({
     chartChangeInterval: z.number().min(10).max(3600),
-    nelsonRule: z.array(
-      z.object({
-        ruleId: z.number(),
-        ruleName: z.string(),
-        ruleDescription: z.string().optional(),
-        ruleIndicated: z.string().optional(),
-        isUsed: z.boolean(),
-      })
-    )
+    nelsonRule: z.array(nelsonRuleItem), 
   }),
 
   specificSetting: z.array(
@@ -73,10 +79,12 @@ export const settingDTOSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export type SettingDTO = z.infer<typeof settingDTOSchema>;
+export type SettingDTO = z.infer<typeof settingDTOSchema> | undefined | [];
 
 export const settingDTO = {
   convertFromEntity(entity: SettingEntity): SettingDTO {
+    const iso = (d?: Date | undefined) => (d ? d.toISOString() : undefined);
+
     const candidate: SettingDTO = {
       id: entity._id.toHexString(),
       settingProfileName: entity.settingProfileName,
@@ -88,8 +96,8 @@ export const settingDTO = {
         nelsonRule: entity.generalSetting.nelsonRule.map((r) => ({
           ruleId: r.ruleId,
           ruleName: r.ruleName,
-          ruleDescription: r.ruleDescription,
-          ruleIndicated: r.ruleIndicated,
+          ruleDescription: r.ruleDescription ?? undefined, // ok กับ schema
+          ruleIndicated: r.ruleIndicated ?? undefined,     // ok กับ schema
           isUsed: r.isUsed,
         })),
       },
@@ -97,8 +105,8 @@ export const settingDTO = {
       specificSetting: entity.specificSetting.map((s) => ({
         period: {
           type: s.period.type,
-          startDate: s.period.startDate ? s.period.startDate.toISOString() : '-',
-          endDate: s.period.endDate ? s.period.endDate.toISOString() : '-',
+          ...(s.period.startDate ? { startDate: iso(s.period.startDate) } : {}),
+          ...(s.period.endDate ? { endDate: iso(s.period.endDate) } : {}),
         },
         furnaceNo: s.furnaceNo,
         cpNo: s.cpNo,
@@ -107,6 +115,7 @@ export const settingDTO = {
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
     };
+
     return settingDTOSchema.parse(candidate);
   },
 };
@@ -143,11 +152,10 @@ export type CreateSettingProfileRequest = z.infer<typeof createSettingProfileReq
 export const updateSettingProfileRequestSchema = settingDTOSchema
   .omit({
     createdAt: true,
-    updatedAt: true,
     specificSetting: true,
   })
   .extend({
-    id: z.string(),
+    id: z.string().optional(),
     specificSetting: z.array(z.object({
       period: z.object({
         type: periodTypeSchema,
@@ -157,8 +165,24 @@ export const updateSettingProfileRequestSchema = settingDTOSchema
       furnaceNo: z.number().int().min(1),
       cpNo: z.string().min(1).max(50),
     })).min(1),
+
+    updatedAt: z.date().optional()
   });
 
 export type UpdateSettingProfileRequest = z.infer<typeof updateSettingProfileRequestSchema>;
+
+export const deleteSettingProfileRequestSchema = z.object({
+  ids: z.array(
+    z.string().regex(/^[0-9a-fA-F]{24}$/,"Invalid ObjectId")
+  ).min(1,"ids must contain at least 1 id to delete"),
+});
+
+export type DeleteSettingProfileRequest = z.infer<typeof deleteSettingProfileRequestSchema>;
+
+export const objectIdSchema = z.object({
+  id: z.string()
+  .regex(/^[0-9a-fA-F]{24}$/, "Invalid ObjectId")
+});
+
 
 

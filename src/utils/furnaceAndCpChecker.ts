@@ -38,3 +38,19 @@ export async function assertAllowedFurnaceCp(
     throw new Error(`Validation failed: invalid furnace and customer product no. not match -> ${invalid.join(", ")}`);
   }
 }
+
+export async function assertAllowedDisplayType(req: CreateSettingProfileRequest): Promise<void> {
+  switch (req.displayType) {
+      case 'FURNACE':
+          
+          break;
+      case 'FURNACE_CP':
+          console.log('Delete');
+          break;
+      case 'CP':
+          console.log('New');
+          break;
+  }
+  
+  
+}

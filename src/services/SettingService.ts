@@ -1,5 +1,6 @@
+import { DeleteReport } from "../models/deleteType";
 import { fromEntity, toEntity } from "../models/mapper/settingMapper";
-import { CreateSettingProfileRequest, SettingDTO, SettingEntity, UpdateSettingProfileRequest } from "../models/validations/settingValidate";
+import { CreateSettingProfileRequest, settingDTO, SettingDTO, SettingEntity, UpdateSettingProfileRequest } from "../models/validations/settingValidate";
 import { assertAllowedFurnaceCp } from "../utils/furnaceAndCpChecker";
 import { cpRepository, furnaceRepository, settingRepository } from "../utils/serviceLocator";
 import { TimeConverter } from "../utils/timeConvertor";
@@ -28,44 +29,58 @@ export class SettingService {
     }
   }
 
-  async updateSettingProfile(req: UpdateSettingProfileRequest): Promise<SettingDTO> {
+  async updateSettingProfile(id: string, req: UpdateSettingProfileRequest): Promise<SettingDTO> {
     try {
-      // 1) validate คู่ (furnaceNo, cpNo) กับ master
       await assertAllowedFurnaceCp(req, furnaceRepository);
 
-      // 2) คำนวณช่วงวันที่ให้ชัด (immutable ไม่แก้ object เดิม)
+      const toDate = (v: unknown): Date => {
+        if (v instanceof Date) return v;
+        const d = new Date(v as any);
+        if (Number.isNaN(d.getTime())) {
+          throw new Error("Invalid date value");
+        }
+        return d;
+      };
+
+      // 2) คำนวณช่วงวันที่ให้ชัด (immutable)
       const specificSetting = await Promise.all(
-        req.specificSetting.map(async s => {
-          const { startDate, endDate } = TimeConverter.toDateRange(
+        req.specificSetting.map(async (s) => {
+          const range = TimeConverter.toDateRange(
             s.period.type,
             s.period.startDate,
             s.period.endDate,
             (s.period as any).customDays
           );
-          return { ...s, period: { ...s.period, startDate: Date, endDate: Date } };
+
+          const startDate = toDate(range.startDate);
+          const endDate = toDate(range.endDate);
+
+          return {
+            ...s,
+            period: { ...s.period, startDate, endDate },
+          };
         })
       );
 
-      // 3) สร้างเอกสารสำหรับอัปเดต (อย่าตั้ง _id/createdAt ใหม่)
       const updateDoc: Partial<SettingEntity> = {
         settingProfileName: req.settingProfileName,
         isUsed: req.isUsed,
         displayType: req.displayType,
         generalSetting: {
           chartChangeInterval: req.generalSetting.chartChangeInterval,
-          nelsonRule: req.generalSetting.nelsonRule.map(r => ({
+          nelsonRule: req.generalSetting.nelsonRule.map((r) => ({
             ruleId: r.ruleId,
             ruleName: r.ruleName,
-            ruleDescription: r.ruleDescription,
-            ruleIndicated: r.ruleIndicated,
+            ruleDescription: r.ruleDescription ?? undefined,
+            ruleIndicated: r.ruleIndicated ?? undefined,
             isUsed: r.isUsed,
           })),
         },
-        specificSetting: specificSetting.map(sp => ({
+        specificSetting: specificSetting.map((sp) => ({
           period: {
             type: sp.period.type,
             startDate: sp.period.startDate,
-            endDate: sp.period.endDate,
+            endDate: sp.period.endDate,     
           },
           furnaceNo: sp.furnaceNo,
           cpNo: sp.cpNo,
@@ -73,23 +88,40 @@ export class SettingService {
         updatedAt: new Date(),
       };
 
-      // 4) เรียก repo อัปเดตตาม id (ให้ repo คืน entity หลังอัปเดต)
-      const updated = await settingRepository.updateById(req.id, updateDoc);
-      if (!updated) {
-        throw new Error("Setting profile not found");
-      }
+      // 4) อัปเดตตาม id และให้ repo คืน entity หลังอัปเดต
+      const updated = await settingRepository.updateById(id, updateDoc);
+      if (!updated) throw new Error("Setting profile not found");
 
       // 5) map Entity -> DTO
       return fromEntity(updated);
-    } catch (e) {
-      throw new Error("Can not update setting profile");
+    } catch (e: any) {
+      // ควร log จริงในระบบของคุณ
+      // console.error(e);
+      throw new Error(`Can not update setting profile: ${e?.message ?? "unknown error"}`);
     }
   }
 
 
-  // deleteSettingProfile(req: SettingDTO): Promise<void>{
 
-  // }
+  async deleteSettingProfile(ids: string[]): Promise<DeleteReport> {
+    const existingIds = await settingRepository.findExistingIds(ids);
+    const existing = new Set(existingIds);
+    const notFoundIds = ids.filter(id => !existing.has(id));
+
+    const deletedCount = await settingRepository.deleteMany(existingIds);
+    return { deletedCount, notFoundIds };
+  }
+
+  async findOneSettingProfile(id: string): Promise<SettingDTO> {
+    const entity = await settingRepository.findById(id);
+    const result = entity ? settingDTO.convertFromEntity(entity): undefined;
+    return result;
+  }
+
+  async findAllSettingProfiles(): Promise<SettingDTO[]>{
+    const entities = await settingRepository.findAll();
+    return entities.map(e => settingDTO.convertFromEntity(e));
+  }
 
   // searchSettingProfile(dto: SettingDTO): Promise<SettingDTO>{
 

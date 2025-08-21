@@ -1,7 +1,10 @@
+import { Types } from "mongoose";
 import { Setting, SettingSchema } from "../models/entities/setting";
-import { CreateSettingProfileRequest, SettingDTO, SettingEntity, settingEntitySchema } from "../models/validations/settingValidate";
+import { CreateSettingProfileRequest, SettingDTO, SettingEntity, settingEntitySchema, UpdateSettingProfileRequest } from "../models/validations/settingValidate";
 
 export class SettingRepository {
+    readonly oid = (id: string) => new Types.ObjectId(id);
+
     async create(req: SettingEntity): Promise<SettingSchema> {
         try {
         const doc = await Setting.create(req);
@@ -23,7 +26,7 @@ export class SettingRepository {
         }
     }
 
-    async updateById(id: string, patch: Partial<CreateSettingProfileRequest>): Promise<SettingSchema | null> {
+    async updateById(id: string, patch: Partial<UpdateSettingProfileRequest>): Promise<SettingSchema | null> {
         try {
             const result = await Setting.findByIdAndUpdate(id, patch, {
                 new: true,
@@ -36,13 +39,22 @@ export class SettingRepository {
         }
     }
 
-    async delete(id: string): Promise<void> {
-        try {
-            const res = await Setting.findByIdAndDelete(id).exec();
-            if (!res) throw new Error("Setting profile not found");
-        } catch (e) {
-            throw new Error("Failed to delete a setting profile");
-        }
+    async findExistingIds(ids: string[]): Promise<string[]> {
+        if (!ids.length) return [];
+        const rows = await Setting.find({ _id: { $in: ids.map(this.oid) } }, { _id: 1 }).lean();
+        return rows.map(r => String(r._id));
+    }
+
+    async deleteMany(ids: string[]): Promise<number> {
+        if (!ids.length) return 0;
+        const res = await Setting.deleteMany({ _id: { $in: ids.map(this.oid) } }).exec();
+        return res.deletedCount ?? 0;
+    }
+
+    async findById(id: string): Promise<SettingSchema> {
+        const doc = await Setting.findById(id).exec();
+        if (!doc) throw new Error("Setting profile not found");
+        return doc;
     }
 
 }
