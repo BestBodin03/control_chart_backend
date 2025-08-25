@@ -6,9 +6,33 @@ import { cpRepository, furnaceRepository, settingRepository } from "../utils/ser
 import { TimeConverter } from "../utils/timeConvertor";
 
 export class SettingService {
+  // 🔒 DRY: single-active guard kept inside this class
+  private async assertSingleActiveSetting(currentId?: string): Promise<void> {
+    // Use your repo's query; keep it minimal (only _id)
+    const actives = await settingRepository.find({ isUsed: true });
+
+    if (!currentId) {
+      // Creating a new active one → must be none
+      if (actives.length > 0) {
+        throw new Error("There is already an active setting profile.");
+      }
+      return;
+    }
+
+    // Updating an existing one → allow itself, but block others
+    const others = actives.filter(a => a._id.toHexString() !== currentId);
+    if (others.length > 0) {
+      throw new Error("Another active setting profile already exists.");
+    }
+  }
+
   async addSettingProfile(req: CreateSettingProfileRequest): Promise<SettingDTO> {
     try {
       await assertAllowedFurnaceCp(req, furnaceRepository);
+
+      if (req.isUsed) {
+        await this.assertSingleActiveSetting();
+      }
 
       const specificSetting = await Promise.all(
         req.specificSetting.map(async s => {
@@ -32,6 +56,10 @@ export class SettingService {
   async updateSettingProfile(id: string, req: UpdateSettingProfileRequest): Promise<SettingDTO> {
     try {
       await assertAllowedFurnaceCp(req, furnaceRepository);
+
+      if (req.isUsed) {
+        await this.assertSingleActiveSetting(id);
+      }
 
       const toDate = (v: unknown): Date => {
         if (v instanceof Date) return v;
@@ -100,8 +128,6 @@ export class SettingService {
       throw new Error(`Can not update setting profile: ${e?.message ?? "unknown error"}`);
     }
   }
-
-
 
   async deleteSettingProfile(ids: string[]): Promise<DeleteReport> {
     const existingIds = await settingRepository.findExistingIds(ids);

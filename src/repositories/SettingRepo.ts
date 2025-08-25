@@ -57,4 +57,8 @@ export class SettingRepository {
         return doc;
     }
 
+    async find(filter: Partial<Record<keyof SettingEntity, any>>): Promise<SettingEntity[]> {
+        return Setting.find(filter).exec();
+    }
+
 }
