@@ -7,6 +7,7 @@ export class SettingRepository {
 
     async create(req: SettingEntity): Promise<SettingSchema> {
         try {
+            console.log(req);
         const doc = await Setting.create(req);
         return doc;
         } catch (e: any) {
@@ -57,8 +58,9 @@ export class SettingRepository {
         return doc;
     }
 
-    async find(filter: Partial<Record<keyof SettingEntity, any>>): Promise<SettingEntity[]> {
-        return Setting.find(filter).exec();
+    async findOne(filter: Partial<Record<keyof SettingEntity, any>>): Promise<SettingEntity | null> {
+        return Setting.findOne(filter).exec();
     }
+
 
 }

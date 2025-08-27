@@ -27,8 +27,9 @@ export const settingEntitySchema = z.object({
         startDate: z.date(),
         endDate: z.date(),
       }),
-      furnaceNo: z.number().int().min(1).optional(),
-      cpNo: z.string().min(1).max(50).optional(),
+      furnaceNo: z.number().int().min(1).nullish().optional(),
+      cpNo:     z.string().min(1).max(50).nullish().optional(),
+
     })
   ),
   createdAt: z.date(),
@@ -70,8 +71,9 @@ export const settingDTOSchema = z.object({
         startDate: z.string().datetime().optional(),
         endDate: z.string().datetime().optional(),
       }),
-      furnaceNo: z.number().int().min(1).optional(),
-      cpNo: z.string().min(1).max(50).optional(),
+      furnaceNo: z.number().int().min(1).nullish().optional(),
+      cpNo:     z.string().min(1).max(50).nullish().optional(),
+
     })
   ).min(1),
 
@@ -132,7 +134,6 @@ export const createSettingProfileRequestSchema = settingDTOSchema
     id: true,
     createdAt: true,
     updatedAt: true,
-    specificSetting: true,
   })
   .extend({
     specificSetting: z.array(z.object({
@@ -141,8 +142,8 @@ export const createSettingProfileRequestSchema = settingDTOSchema
         startDate: requiredCoercedDate, // ← Date
         endDate:   requiredCoercedDate, // ← Date
       }),
-      furnaceNo: z.number().int().min(1).optional(),
-      cpNo: z.string().min(1).max(50).optional(),
+      furnaceNo: z.number().int().min(1).nullish().optional(),
+      cpNo:     z.string().min(1).max(50).nullish().optional(),
     })).min(1),
   });
 
@@ -162,8 +163,8 @@ export const updateSettingProfileRequestSchema = settingDTOSchema
         startDate: requiredCoercedDate, // ← Date
         endDate:   requiredCoercedDate, // ← Date
       }),
-      furnaceNo: z.number().int().min(1).optional(),
-      cpNo: z.string().min(1).max(50).optional(),
+      furnaceNo: z.number().int().min(1).nullish().optional(),
+      cpNo:     z.string().min(1).max(50).nullish().optional(),
     })).min(1),
 
     updatedAt: z.date().optional()

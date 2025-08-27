@@ -33,36 +33,64 @@ class SettingController {
       }
   }
 
-  async updateSettingProfile(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const serviceDTO = updateSettingProfileRequestSchema.parse(req.body);
-      const result = await this.service.updateSettingProfile(id, serviceDTO);
-      res.status(200).json({
-        status: "success",
-        statusCode: 200,
-        data: result,
-      });
-      return;
-    } catch (e) {
-      if (e instanceof ZodError) {
-        res.status(400).json({
-          status: "error",
-          statusCode: 400,
-          error: { message: "Validation failed", issues: e.issues },
-        });
-        return;
-      }
-      console.error(e);
+async updateSettingProfile(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const serviceDTO = updateSettingProfileRequestSchema.parse(req.body);
 
-      res.status(500).json({
-        status: "error",
-        statusCode: 500,
-        error: { message: "Internal Server Error", e},
+    console.log(serviceDTO);
+
+    const result = await this.service.updateSettingProfile(id, serviceDTO);
+    console.log('CALL');
+
+    res.status(200).json({
+      status: 'success',
+      statusCode: 200,
+      data: result,
+    });
+    return;
+  } catch (err: unknown) {
+    // 400: Zod validation
+    if (err instanceof ZodError) {
+      res.status(400).json({
+        status: 'error',
+        statusCode: 400,
+        error: { message: 'Validation failed', issues: err.issues },
       });
       return;
     }
+
+    // 409: your service guard (assertSingleActiveSetting) threw
+    if (err instanceof Error && /Another active setting profile/i.test(err.message)) {
+      res.status(409).json({
+        status: 'error',
+        statusCode: 409,
+        error: { message: err.message },
+      });
+      return;
+    }
+
+    // 404: not found (if your service throws such messages)
+    if (err instanceof Error && /not found/i.test(err.message)) {
+      res.status(404).json({
+        status: 'error',
+        statusCode: 404,
+        error: { message: err.message },
+      });
+      return;
+    }
+
+    // 500: fallback
+    console.error(err);
+    res.status(500).json({
+      status: 'error',
+      statusCode: 500,
+      error: { message: 'Internal Server Error' },
+    });
+    return;
   }
+}
+
 
   async deleteSettingProfile(req: Request, res: Response): Promise<void> {
     try {

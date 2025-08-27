@@ -6,33 +6,33 @@ import { cpRepository, furnaceRepository, settingRepository } from "../utils/ser
 import { TimeConverter } from "../utils/timeConvertor";
 
 export class SettingService {
-  // 🔒 DRY: single-active guard kept inside this class
   private async assertSingleActiveSetting(currentId?: string): Promise<void> {
-    // Use your repo's query; keep it minimal (only _id)
-    const actives = await settingRepository.find({ isUsed: true });
-
-    if (!currentId) {
-      // Creating a new active one → must be none
-      if (actives.length > 0) {
-        throw new Error("There is already an active setting profile.");
-      }
-      return;
+    const query: any = { isUsed: true };
+    if (currentId) {
+      query._id = { $ne: currentId };
     }
 
-    // Updating an existing one → allow itself, but block others
-    const others = actives.filter(a => a._id.toHexString() !== currentId);
-    if (others.length > 0) {
-      throw new Error("Another active setting profile already exists.");
+    const existing = await settingRepository.findOne(query);
+    if (existing) {
+      throw new Error(
+        `Another active setting profile already exists.\nHint -> Set Profile Name: ${existing.settingProfileName} to false`
+      );
     }
   }
+
+
 
   async addSettingProfile(req: CreateSettingProfileRequest): Promise<SettingDTO> {
     try {
       await assertAllowedFurnaceCp(req, furnaceRepository);
+      console.log('DO 1');
+      // if (req.displayType != null) {
+      //   console.log('DO 2.1');
+      //   await this.assertSingleActiveSetting();
+      //   console.log('DO 2');
+      // }
 
-      if (req.isUsed) {
-        await this.assertSingleActiveSetting();
-      }
+      console.log('DO 3');
 
       const specificSetting = await Promise.all(
         req.specificSetting.map(async s => {
@@ -46,7 +46,10 @@ export class SettingService {
         })
       );
 
+      console.log('DO 4');
+
       const saved = await settingRepository.create(toEntity({ ...req, specificSetting }));
+      console.log('DO 5');
       return fromEntity(saved);
     } catch (e) {
       throw new Error('Can not create a new setting profile');

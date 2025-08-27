@@ -13,7 +13,7 @@ export const toEntity = (req: CreateSettingProfileRequest): SettingEntity => {
   return {
     _id: new Types.ObjectId(),
     settingProfileName: req.settingProfileName,
-    isUsed: req.isUsed,
+    isUsed: false,
     displayType: req.displayType,
     generalSetting: {
       chartChangeInterval: req.generalSetting.chartChangeInterval,
