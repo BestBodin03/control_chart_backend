@@ -8,29 +8,51 @@ import { settingService } from "../../utils/serviceLocator";
 class SettingController {
   constructor(private readonly service: SettingService) {}
 
-  async addSettingProfile(req: Request, res: Response): Promise<void> {
+ async addSettingProfile(req: Request, res: Response): Promise<void> {
+    // 1) validate แบบไม่ throw จะควบคุม flow ได้ง่ายกว่า
+    const parsed = createSettingProfileRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        status: "error",
+        statusCode: 400,
+        error: { message: "Validation failed", issues: parsed.error.issues },
+      });
+      return; // สำคัญมาก
+    }
+
     try {
-      const serviceDTO = createSettingProfileRequestSchema.parse(req.body);
+      // 2) business logic
+      const result = await this.service.addSettingProfile(parsed.data);
 
-      const result = await this.service.addSettingProfile(serviceDTO);
-
-      res.json({
+      // 3) ตอบครั้งเดียวแล้วจบ
+      res.status(201).json({
         status: "success",
-        statusCode: res.statusCode,
+        statusCode: 201,
         data: result,
       });
-    }catch (e: any) {
-        if (e.name === "ZodError") {
-          res.status(400).json({ 
-            status: "error", 
-            statusCode: res.statusCode,
-            error: { message: "Validation failed", issues: e.issues } });
-        }
-          res.status(500).json({ 
-            status: "error",
-            statusCode: 500, 
-            error: { message: "Internal Server Error" } });
+      return; // สำคัญมาก
+    } catch (e: any) {
+      // ป้องกันกรณีมี middleware ก่อนหน้าเผลอส่งไปแล้ว
+      if (res.headersSent) return;
+
+      // ระบุ error เฉพาะทางได้ถ้าต้องการ (เช่น Unique conflict → 409)
+      if (e instanceof ZodError) {
+        res.status(400).json({
+          status: "error",
+          statusCode: 400,
+          error: { message: "Validation failed", issues: e.issues },
+        });
+        return;
       }
+
+      // 4) ตอบ 500 เอง โดยไม่ใช้ next()
+      res.status(500).json({
+        status: "error",
+        statusCode: 500,
+        error: { message: e?.message ?? "Internal Server Error" },
+      });
+      return;
+    }
   }
 
 async updateSettingProfile(req: Request, res: Response): Promise<void> {
