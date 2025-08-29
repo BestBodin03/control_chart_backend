@@ -20,20 +20,14 @@ export class SettingService {
     }
   }
 
-
-
   async addSettingProfile(req: CreateSettingProfileRequest): Promise<SettingDTO> {
     try {
       await assertAllowedFurnaceCp(req, furnaceRepository);
-      console.log('DO 1');
       // if (req.displayType != null) {
       //   console.log('DO 2.1');
       //   await this.assertSingleActiveSetting();
       //   console.log('DO 2');
       // }
-
-      console.log('DO 3');
-
       const specificSetting = await Promise.all(
         req.specificSetting.map(async s => {
           const { startDate, endDate } = TimeConverter.toDateRange(
@@ -45,11 +39,7 @@ export class SettingService {
           return { ...s, period: { ...s.period, startDate, endDate } };
         })
       );
-
-      console.log('DO 4');
-
       const saved = await settingRepository.create(toEntity({ ...req, specificSetting }));
-      console.log('DO 5');
       return fromEntity(saved);
     } catch (e) {
       throw new Error('Can not create a new setting profile');
