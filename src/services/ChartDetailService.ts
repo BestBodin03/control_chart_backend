@@ -1,5 +1,5 @@
 import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
-import { ChartDetailsFiltering, FilteredResult, MRChartResult, toSpecAttribute } from "../models/chartDetailFiltering";
+import { ChartDetailsFiltering, FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/chartDetailFiltering";
 import { Router, Request, Response } from "express";
 import { chartDetailController, customerProductService } from "../utils/serviceLocator";
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
@@ -344,6 +344,19 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 specAttribute = {};
             }
 
+            const yAxisRange = this.computeYAxisRange({
+            hardnessValues,
+            cdeValues,
+            cdtValues,
+            mrSpots: movingRanges,
+            cdeMrSpots: cdeMovingRanges,
+            cdtMrSpots: cdtMovingRanges,
+            iUCL: iChartUCL, iLCL: iChartLCL, mrUCL: mrChartUCL,
+            cdeIUCL: cdeIChartUCL, cdeILCL: cdeIChartLCL, cdeMrUCL: cdeMrChartUCL,
+            cdtIUCL: cdtIChartUCL, cdtILCL: cdtIChartLCL, cdtMrUCL: cdtMrChartUCL,
+            specAttribute
+            });
+
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
                 average: Number(average.toFixed(3)),
@@ -413,6 +426,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 cdeMrChartSpots: cdeMovingRanges,
                 cdtMrChartSpots: cdtMovingRanges,
                 specAttribute,
+                yAxisRange: yAxisRange
             };
            
             console.log('I-MR Chart Calculation Results:', result);
@@ -424,4 +438,124 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             throw ('Calculate IMR error: founded less than 2 records');
         }
     }
+
+    private pickMax(...vals: Array<number | null | undefined>): number {
+    const nums = vals.filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+    return nums.length ? Math.max(...nums) : 0;
+    }
+
+    private pickMin(...vals: Array<number | null | undefined>): number {
+    const nums = vals.filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+    return nums.length ? Math.min(...nums) : 0;
+    }
+
+    private arrMax(arr: number[]): number {
+    const nums = arr.filter(Number.isFinite);
+    return nums.length ? Math.max(...nums) : 0;
+    }
+
+    private arrMin(arr: number[]): number {
+    const nums = arr.filter(Number.isFinite);
+    return nums.length ? Math.min(...nums) : 0;
+    }
+
+    private computeYAxisRange(params: {
+    hardnessValues: number[];
+    cdeValues: number[];
+    cdtValues: number[];
+    mrSpots: number[];
+    cdeMrSpots: number[];
+    cdtMrSpots: number[];
+    iUCL: number;  iLCL: number;   mrUCL: number;
+    cdeIUCL: number; cdeILCL: number; cdeMrUCL: number;
+    cdtIUCL: number; cdtILCL: number; cdtMrUCL: number;
+    specAttribute: {
+        surfaceHardnessUpperSpec?: number;
+        surfaceHardnessLowerSpec?: number;
+        cdeUpperSpec?: number;
+        cdeLowerSpec?: number;
+        cdtUpperSpec?: number;
+        cdtLowerSpec?: number;
+        // any other fields are ignored
+    };
+    }): YAxisRange {
+    const {
+        hardnessValues, cdeValues, cdtValues,
+        mrSpots, cdeMrSpots, cdtMrSpots,
+        iUCL, iLCL, mrUCL,
+        cdeIUCL, cdeILCL, cdeMrUCL,
+        cdtIUCL, cdtILCL, cdtMrUCL,
+        specAttribute
+    } = params;
+
+    const maxHardSpot = this.arrMax(hardnessValues);
+    const minHardSpot = this.arrMin(hardnessValues);
+
+    const maxCdeSpot  = this.arrMax(cdeValues);
+    const minCdeSpot  = this.arrMin(cdeValues);
+
+    const maxCdtSpot  = this.arrMax(cdtValues);
+    const minCdtSpot  = this.arrMin(cdtValues);
+
+    const maxMrSpot   = this.arrMax(mrSpots);
+    const maxCdeMr    = this.arrMax(cdeMrSpots);
+    const maxCdtMr    = this.arrMax(cdtMrSpots);
+
+    return {
+        // Surface Hardness I-Chart
+        maxYsurfaceHardnessControlChart: this.pickMax(
+        maxHardSpot,
+        iUCL,
+        specAttribute.surfaceHardnessUpperSpec
+        ),
+        minYsurfaceHardnessControlChart: this.pickMin(
+        minHardSpot,
+        iLCL,
+        specAttribute.surfaceHardnessLowerSpec
+        ),
+
+        // Surface Hardness MR-Chart
+        maxYsurfaceHardnessMrChart: this.pickMax(
+        maxMrSpot,
+        mrUCL
+        ),
+
+        // CDE I-Chart
+        maxYcdeControlChart: this.pickMax(
+        maxCdeSpot,
+        cdeIUCL,
+        specAttribute.cdeUpperSpec
+        ),
+        minYcdeControlChart: this.pickMin(
+        minCdeSpot,
+        cdeILCL,
+        specAttribute.cdeLowerSpec
+        ),
+
+        // CDE MR-Chart
+        maxYcdeMrChart: this.pickMax(
+        maxCdeMr,
+        cdeMrUCL
+        ),
+
+        // CDT I-Chart
+        maxYcdtControlChart: this.pickMax(
+        maxCdtSpot,
+        cdtIUCL,
+        specAttribute.cdtUpperSpec
+        ),
+        minYcdtControlChart: this.pickMin(
+        minCdtSpot,
+        cdtILCL,
+        specAttribute.cdtLowerSpec
+        ),
+
+        // CDT MR-Chart
+        maxYcdtMrChart: this.pickMax(
+        maxCdtMr,
+        cdtMrUCL
+        ),
+    };
+    }
+
 }

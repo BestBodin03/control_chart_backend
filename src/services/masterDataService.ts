@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
 import { CustomerProductData, CustomerProduct } from "../models/entities/customerProduct";
 import { FurnaceData, Furnace, FurnaceModel } from "../models/entities/furnace";
-import { ChartDetailService } from "./chartDetailService";
+// import { ChartDetailService } from "./chartDetailService";
 import { CustomerProductService } from "./customerProductService";
 import { FurnaceService } from "./furnaceService";
 // import { MASTER_API } from "../config/constans";
@@ -11,6 +11,7 @@ import dotenv from 'dotenv';
 import { MasterDataServiceHelper } from "./masterDataServiceHelper";
 import { MasterApiResponse, MasterApiRequest } from "../models/masterApiResponse";
 import { FurnaceCodeEncoder } from "../utils/masterDataFgEncoder";
+import { ChartDetailService } from "./chartDetailService";
 
 dotenv.config({ path: '.env' });
 
@@ -164,7 +165,7 @@ export class MasterDataService {
       }
 
       const data: any = await response.json();
-      const targetNames = ["Surface Hardness", "Total Case Depth (Core +50)", "Hardness Case Depth (CDE@ 513 Hmv)"];
+      const targetNames = ["Surface Hardness", "Total Case Depth (Core +50)", "Hardness Case Depth (CDE@ 513 Hmv)", "Compound Layer"];
 
       const mappedData: MasterApiResponse[] = data.map((record: any, index: number) => {
         const fgCode = record.FG_CHARG || '';

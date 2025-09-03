@@ -56,6 +56,21 @@ export interface MRChartResult {
   cdeMrChartSpots: number[];
   cdtMrChartSpots: number[];
   specAttribute: SpecAttribute;
+  yAxisRange?: YAxisRange;
+}
+
+export interface YAxisRange {
+  maxYsurfaceHardnessControlChart?: number;
+  maxYsurfaceHardnessMrChart?: number;
+  minYsurfaceHardnessControlChart?: number;
+
+  maxYcdeControlChart?: number;
+  minYcdeControlChart?: number;
+  maxYcdeMrChart?: number;
+
+  maxYcdtControlChart?: number;
+  minYcdtControlChart?: number;
+  maxYcdtMrChart?: number;
 }
 
 export interface MRChartSpots {
