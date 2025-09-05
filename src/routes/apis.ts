@@ -7,6 +7,7 @@ import { periodFilterRoutes } from "./api/v1/filterDataWithSettingRoute";
 import { chartDetailRoute } from "./api/v1/chartDetailRoute";
 import { furnaceRoute } from "./api/v1/furnaceRoute";
 import { customerProductRoute } from "./api/v1/customerProductRoute";
+import { furnaceCacheRoutes } from "./api/v1/furnaceCacheRoute";
 
 const router: Router = express.Router();
 
@@ -16,5 +17,6 @@ router.use(API_V1_PREFIX, periodFilterRoutes);
 router.use(API_V1_PREFIX, chartDetailRoute);
 router.use(API_V1_PREFIX, furnaceRoute);
 router.use(API_V1_PREFIX, customerProductRoute);
+router.use(API_V1_PREFIX, furnaceCacheRoutes); 
 
 export default router;

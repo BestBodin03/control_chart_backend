@@ -34,27 +34,42 @@ export interface SigmaLevels {
 
 export interface MRChartResult {
   numberOfSpots: number;
+
   average: number;
+  compoundLayerAverage: number;
   cdeAverage: number;
   cdtAverage: number;
+
   MRAverage: number;
+  compoundLayerMRAverage: number;
   cdeMRAverage: number;
   cdtMRAverage: number;
+
   controlLimitIChart: ControlLimits;
+  compoundLayerControlLimitIChart: ControlLimits;
   cdeControlLimitIChart: ControlLimits;
   cdtControlLimitIChart: ControlLimits;
+
   sigmaIChart: SigmaLevels;
+  compoundLayerSigmaIChart: SigmaLevels;
   cdeSigmaIChart: SigmaLevels;
   cdtSigmaIChart: SigmaLevels;
+  
   controlLimitMRChart: ControlLimits;
+  compoundLayerControlLimitMRChart: ControlLimits;
   cdeControlLimitMRChart: ControlLimits;
   cdtControlLimitMRChart: ControlLimits;
+
   surfaceHardnessChartSpots: number[];
+  compoundLayerChartSpots: number[] ;
   cdeChartSpots: number[];
   cdtChartSpots: number[];
+
   mrChartSpots: number[];
+  compoundLayerMrChartSpots: number[];
   cdeMrChartSpots: number[];
   cdtMrChartSpots: number[];
+
   specAttribute: SpecAttribute;
   yAxisRange?: YAxisRange;
 }
@@ -63,6 +78,10 @@ export interface YAxisRange {
   maxYsurfaceHardnessControlChart?: number;
   maxYsurfaceHardnessMrChart?: number;
   minYsurfaceHardnessControlChart?: number;
+
+  maxYcompoundLayerControlChart?: number;
+  minYcompoundLayerControlChart?: number;
+  maxYcompoundLayerMrChart?: number;
 
   maxYcdeControlChart?: number;
   minYcdeControlChart?: number;
@@ -82,6 +101,9 @@ export interface SpecAttribute {
   surfaceHardnessUpperSpec?: number;
   surfaceHardnessLowerSpec?: number;
   surfaceHardnessTarget?: number;
+  compoundLayerUpperSpec?: number;
+  compoundLayerLowerSpec?: number;
+  compoundLayerTarget?: number;
   cdeUpperSpec?: number;
   cdeLowerSpec?: number;
   cdeTarget?: number;
@@ -95,6 +117,9 @@ export const toSpecAttribute = (cp: CustomerProduct): SpecAttribute => ({
   surfaceHardnessUpperSpec: cp.surfaceHardnessUSpec,
   surfaceHardnessLowerSpec: cp.surfaceHardnessLSpec,
   surfaceHardnessTarget: cp.surfaceHardnessTarget,
+  compoundLayerUpperSpec: cp.compoundLayerUSpec,
+  compoundLayerLowerSpec: cp.compoundLayerLSpec,
+  compoundLayerTarget: cp.compoundLayerTarget,
   cdeUpperSpec: cp.cdeUSpec,
   cdeLowerSpec: cp.cdeLSpec,
   cdeTarget: cp.cdeTarget,

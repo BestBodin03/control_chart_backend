@@ -7,14 +7,17 @@ export interface MasterApiResponse {
   part_name: string;
   collected_date: Date;
   surface_hardness: number;
+  compound_layer: number;
   hardness_01mm: number;
   cde_x: number;
   cdt_x: number;
   core_hardness: number;
-  compound_layer: number;
   surface_upper_spec: number;
   surface_lower_spec: number;
   surface_target: number;
+  compound_layer_upper_spec: number;
+  compound_layer_lower_spec: number;
+  compound_layer_target: number;
   cde_upper_spec: number;
   cde_lower_spec: number;
   cde_target: number;

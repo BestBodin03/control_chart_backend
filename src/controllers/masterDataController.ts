@@ -6,10 +6,12 @@ import { MasterDataService } from '../services/masterDataService';
 import { MasterApiRequest } from '../models/masterApiResponse';
 import { autoCompleteEndDate } from '../utils/masterDataFgEncoder';
 import { any } from 'zod';
+import { furnaceCacheController } from './furnaceCacheController';
+import { furnaceMaterialCacheService } from '../services/furnaceMaterialCacheService';
 
 export class MasterDataController {
   constructor(
-    private masterDataService: MasterDataService,
+    private masterDataService: MasterDataService
   ) {}
 
   async fetchDataFromQcReport(req: Request, res: Response): Promise<void> {
@@ -55,6 +57,7 @@ export class MasterDataController {
       };
 
       const result = await this.masterDataService.processFromAPI(masterReq);
+      await furnaceMaterialCacheService.refresh();
       
       return res.json({
         status: "success",

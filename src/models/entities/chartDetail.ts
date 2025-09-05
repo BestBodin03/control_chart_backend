@@ -11,6 +11,7 @@ export interface ChartDetail extends Document {
   };
   machanicDetail: {
     surfaceHardnessMean: number;
+    compoundLayer: number;
     CDE: {
       CDEX: number;
       CDTX: number;
@@ -29,6 +30,7 @@ export interface ChartDetailData {
   };
   machanicDetail: {
     surfaceHardnessMean: number;
+    compoundLayer: number;
     CDE: {
       CDEX: number;
       CDTX: number;
@@ -47,6 +49,7 @@ const chartDetailSchema = new Schema<ChartDetail>({
   },
   machanicDetail: {
     surfaceHardnessMean: { type: Number, required: true },
+    compoundLayer: {type: Number, required: true},
     CDE: {
       CDEX: { type: Number, required: true },
       CDTX: { type: Number, required: true }

@@ -1,4 +1,5 @@
 import { DeleteReport } from "../models/deleteType";
+import { FurnaceModel } from "../models/entities/furnace";
 import { fromEntity, toEntity } from "../models/mapper/settingMapper";
 import { CreateSettingProfileRequest, settingDTO, SettingDTO, SettingEntity, UpdateSettingProfileRequest } from "../models/validations/settingValidate";
 import { assertAllowedFurnaceCp } from "../utils/furnaceAndCpChecker";
@@ -141,6 +142,11 @@ export class SettingService {
     const entities = await settingRepository.findAll();
     return entities.map(e => settingDTO.convertFromEntity(e));
   }
+
+  // async getDynamicFurnaceAndMaterialNo(): Promise<void> {
+  //   const queryParam = await
+
+  // }
 
   // searchSettingProfile(dto: SettingDTO): Promise<SettingDTO>{
 

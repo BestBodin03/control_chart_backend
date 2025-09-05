@@ -41,6 +41,9 @@ export class MasterDataService {
       surfaceHardnessUSpec: record.surface_upper_spec || 0,
       surfaceHardnessLSpec: record.surface_lower_spec || 0,
       surfaceHardnessTarget: record.surface_target || 0,
+      compoundLayerUSpec: record.compound_layer_upper_spec || 0,
+      compoundLayerLSpec: record.compound_layer_lower_spec || 0,
+      compoundLayerTarget: record.compound_layer_target || 0,
       cdeUSpec: record.cde_upper_spec || 0,
       cdeLSpec: record.cde_lower_spec || 0,
       cdeTarget: record.cde_target || 0,
@@ -61,6 +64,7 @@ export class MasterDataService {
       },
       machanicDetail: {
         surfaceHardnessMean: record.surface_hardness || 0,
+        compoundLayer: record.compound_layer || 0,
         CDE: {
           CDEX: record.cde_x || 0,
           CDTX: record.cdt_x || 0,
@@ -194,6 +198,9 @@ export class MasterDataService {
           m.name === "Total Case Depth (Core +50)");
         const cdeMean = recordMeanResults.find((m: any) => 
           m.name === "Hardness Case Depth (CDE@ 513 Hmv)");
+        const compoundLayerMean = recordMeanResults.find((m: any) =>
+          m.name === "Compound Layer");
+
 
         // หา spec สำหรับ record นี้
         const surfaceHardnessSpec = recordSpecResults.find((s: any) => 
@@ -206,10 +213,15 @@ export class MasterDataService {
           s.name === "Hardness Case Depth (CDE@ 513 Hmv)"
         );
 
+        const compoundLayerSpec = recordSpecResults.find((s: any) => 
+          s.name === "Compound Layer"
+        );
+
         console.log(`Record ${index} data found:`);
         console.log(`  - Surface Hardness: ${!!surfaceHardnessMean ? '✅' : '❌'}`);
         console.log(`  - CDT: ${!!cdtMean ? '✅' : '❌'}`);
         console.log(`  - CDE: ${!!cdeMean ? '✅' : '❌'}`);
+        console.log(`  - Compound Layer: ${!!compoundLayerMean ? '✅' : '❌'}`);
         
         if (surfaceHardnessMean) {
           console.log(`  - Surface hardness value:`, surfaceHardnessMean.data_ans);
@@ -220,6 +232,9 @@ export class MasterDataService {
         if (cdeMean) {
           console.log(`  - CDE value:`, cdeMean.data_ans?.x);
         }
+        if (compoundLayerMean) {
+          console.log(`  - Compound Layer value:`, compoundLayerMean.dataFromArr);
+        }
       
         return {
           lot_number: record.MATCP || '',
@@ -229,11 +244,15 @@ export class MasterDataService {
           part_name: record.PARTNAME || '',
           collected_date: fgEncoded.masterCollectedDate,
           surface_hardness: surfaceHardnessMean?.data_ans || 0,
+          compound_layer: compoundLayerMean?.dataFromArr || 0,
           cde_x: cdeMean?.data_ans?.x || 0,
           cdt_x: cdtMean?.data_ans?.x || 0,
           surface_upper_spec: surfaceHardnessSpec?.upper_spec || 0,
           surface_lower_spec: surfaceHardnessSpec?.lower_spec || 0,
           surface_target: surfaceHardnessSpec?.target || 0,
+          compound_layer_upper_spec: compoundLayerSpec?.upper_spec || 0,
+          compound_layer_lower_spec: compoundLayerSpec?.lower_spec || 0,
+          compound_layer_target: compoundLayerSpec?.target || 0,
           cde_upper_spec: cdeSpec?.upper_spec || 0,
           cde_lower_spec: cdeSpec?.lower_spec || 0,
           cde_target: cdeSpec?.target || 0,
@@ -244,7 +263,7 @@ export class MasterDataService {
         };
       });
 
-      console.log(mappedData);
+      // console.log(mappedData);
       return mappedData;
 
     } catch (error) {

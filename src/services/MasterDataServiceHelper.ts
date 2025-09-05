@@ -171,90 +171,133 @@ export class MasterDataServiceHelper {
 }
 
   // แก้ไข getAttributeMeanData ให้ handle missing data
-  getAttributeMeanData(
-    data: any,
-    invertedIndex: Record<string, string>,
-    targetNames: string[]
-  ) {
-    console.log('🔍 getAttributeMeanData processing...');
-    
-    // ถ้า data เป็น array ให้ process แต่ละ record
-    if (Array.isArray(data)) {
-      return data.flatMap((record, recordIndex) => {
-        console.log(`\n🔍 Processing record ${recordIndex}:`);
-        
-        return targetNames
-          .map(targetName => {
-            const itemCode = invertedIndex[targetName];
-            console.log(`🔍 ${targetName} -> itemCode: ${itemCode}`);
-            
-            if (!itemCode) {
-              console.log(`⚠️ No itemCode found for: ${targetName} (skipping - optional data)`);
-              return null; // Return null แทน throw error
-            }
-            
-            // ใช้ record.itemobject แทน data โดยตรง
-            const itemData = record[itemCode];
-            console.log(`🔍 itemData exists for ${itemCode}:`, !!itemData);
-            
-            if (!itemData) {
-              console.log(`⚠️ No itemData found for itemCode: ${itemCode} (skipping - optional data)`);
-              return null; // Return null แทน throw error
-            }
-            
-            console.log(`🔍 data_ans exists for ${itemCode}:`, !!itemData.data_ans);
-            
-            if (!itemData.data_ans) {
-              console.log(`⚠️ No data_ans found for: ${itemCode} (skipping - optional data)`);
-              return null; // Return null แทน throw error
-            }
-            
-            console.log(`✅ Found data for ${targetName}:`, itemData.data_ans);
-            
-            return {
-              recordIndex,
-              itemCode,
-              name: targetName,
-              data_ans: itemData.data_ans
-            };
-          })
-          .filter((result): result is { 
-            recordIndex: number; 
-            itemCode: string; 
-            name: string; 
-            data_ans: any 
-          } => result !== null);
-      });
-    } 
-    
-    // ถ้า data เป็น single record
-    else {
-      console.log('🔍 Processing single record');
+getAttributeMeanData(
+  data: any,
+  invertedIndex: Record<string, string>,
+  targetNames: string[]
+) {
+  console.log('🔍 getAttributeMeanData processing...');
+
+  // ---- Helper: หยิบ itemData จาก record โดยลองทั้ง 2 รูปแบบ ----
+  const pickItemData = (rec: any, code: string) =>
+    rec?.[code] ?? rec?.itemobject?.[code];
+
+  // ---- Helper: แปลงผลลัพธ์ให้เป็นอ็อบเจกต์ตามกติกา ----
+  const buildResult = (args: {
+    recordIndex?: number;
+    itemCode: string;
+    name: string;
+    data_ans: any | null;   // อนุญาตให้เป็น null ได้
+    dataFromArr?: number;   // มีเมื่อคำนวณได้เท่านั้น
+  }) => args;
+
+  // ===== กรณี data เป็น array =====
+  if (Array.isArray(data)) {
+    return data.flatMap((record, recordIndex) => {
+      console.log(`\n🔍 Processing record ${recordIndex}:`);
+
       return targetNames
         .map(targetName => {
           const itemCode = invertedIndex[targetName];
-          
+          console.log(`🔍 ${targetName} -> itemCode: ${itemCode}`);
+
           if (!itemCode) {
-            console.log(`⚠️ No itemCode found for: ${targetName} (skipping)`);
+            console.log(`⚠️ No itemCode found for: ${targetName} (skipping - optional data)`);
             return null;
           }
-          
-          const itemData = data.itemobject?.[itemCode];
-          
-          if (!itemData || !itemData.data_ans) {
-            console.log(`⚠️ No data found for: ${itemCode} (skipping)`);
+
+          const itemData = pickItemData(record, itemCode);
+          console.log(`🔍 itemData exists for ${itemCode}:`, !!itemData);
+          if (!itemData) {
+            console.log(`⚠️ No itemData found for itemCode: ${itemCode} (skipping - optional data)`);
             return null;
           }
-          
-          return {
+
+          // ✅ ทำทั้งสองอย่าง
+          const dataAns = itemData?.data_ans ?? null;
+          const dataFromArr =
+          Array.isArray(itemData?.data) && itemData.data.length > 0
+            ? Math.max(...itemData.data.map((v: any) => parseFloat(v ?? 0)))
+            : undefined;
+
+          console.log(`value of surface: ${dataAns}, compound layer: ${dataFromArr}`);
+
+          // ถ้าไม่มีทั้งสอง → ข้าม
+          if (dataAns == null && dataFromArr === undefined) {
+            console.log(`⚠️ Both data_ans and numeric data are missing for ${itemCode} (skipping)`);
+            return null;
+          }
+
+          // มีอย่างน้อยหนึ่งอย่าง → คืนผลรวม
+          return buildResult({
+            recordIndex,
             itemCode,
             name: targetName,
-            data_ans: itemData.data_ans
-          };
+            data_ans: dataAns,
+            ...(dataFromArr !== undefined ? { dataFromArr } : {}),
+          });
         })
-        .filter(result => result !== null);
-    }
+        .filter(
+          (result): result is {
+            recordIndex: number;
+            itemCode: string;
+            name: string;
+            data_ans: any | null;
+            dataFromArr?: number;
+          } => result !== null
+        );
+    });
   }
+
+  // ===== กรณี data เป็น single record =====
+  console.log('🔍 Processing single record');
+
+  return targetNames
+    .map(targetName => {
+      const itemCode = invertedIndex[targetName];
+      if (!itemCode) {
+        console.log(`⚠️ No itemCode found for: ${targetName} (skipping)`);
+        return null;
+      }
+
+      const itemData = pickItemData(data, itemCode);
+      if (!itemData) {
+        console.log(`⚠️ No itemData found for: ${itemCode} (skipping)`);
+        return null;
+      }
+
+      // ✅ ทำทั้งสองอย่าง
+      const dataAns = itemData?.data_ans ?? null;
+      console.log(itemData?.data);
+      const dataFromArr =
+        Array.isArray(itemData?.data) && itemData.data.length > 0
+            ? Math.max(...itemData.data.map((v: any) => parseFloat(v ?? 0)))
+            : undefined;
+      console.log(`value of surface: ${dataAns}, compound layer: ${dataFromArr}`);
+
+      if (dataAns == null && dataFromArr === undefined) {
+        console.log(`⚠️ Both data_ans and numeric data are missing for ${itemCode} (skipping)`);
+        return null;
+      }
+
+      return {
+        itemCode,
+        name: targetName,
+        data_ans: dataAns,
+        ...(dataFromArr !== undefined ? { dataFromArr } : {}),
+      };
+    })
+    .filter(
+      (result): result is {
+        itemCode: string;
+        name: string;
+        data_ans: any | null;
+        dataFromArr?: number;
+      } => result !== null
+    );
+}
+
+
 
   createLookupMap<T extends { name: string }>(results: (T | null)[]): Record<string, T> {
   return results

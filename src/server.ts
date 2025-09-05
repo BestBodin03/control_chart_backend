@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 import apiRouter from './routes/apis'
 import  connectMongoDB, { chooseMongoCollection } from './databases/mongoDb';
 import { API_V1_PREFIX } from './config/constans';
+import { furnaceMaterialCacheService } from './services/furnaceMaterialCacheService';
 
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(cors());
 app.use('/', apiRouter);
 
 connectMongoDB();
+furnaceMaterialCacheService.init();
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}${API_V1_PREFIX}`);

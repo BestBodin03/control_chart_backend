@@ -7,6 +7,9 @@ export interface CustomerProduct extends Document {
   surfaceHardnessUSpec?: number; // เพิ่ม spec fields
   surfaceHardnessLSpec?: number;
   surfaceHardnessTarget?: number;
+  compoundLayerUSpec?: number;
+  compoundLayerLSpec?: number;
+  compoundLayerTarget?: number;
   cdeUSpec?: number;
   cdeLSpec?: number;
   cdeTarget?: number;
@@ -20,9 +23,12 @@ export interface CustomerProduct extends Document {
 export interface CustomerProductData {
   CPNo: string;
   furnaceId: Types.ObjectId[];
-  surfaceHardnessUSpec?: number; // เพิ่ม spec fields
+  surfaceHardnessUSpec?: number;
   surfaceHardnessLSpec?: number;
   surfaceHardnessTarget?: number;
+  compoundLayerUSpec?: number;
+  compoundLayerLSpec?: number;
+  compoundLayerTarget?: number;
   cdeUSpec?: number;
   cdeLSpec?: number;
   cdeTarget?: number;
@@ -39,6 +45,9 @@ const customerProductSchema = new Schema<CustomerProduct>({
   surfaceHardnessUSpec: { type: Number, required: false, default: null },
   surfaceHardnessLSpec: { type: Number, required: false, default: null },
   surfaceHardnessTarget: { type: Number, required: false, default: null },
+  compoundLayerUSpec: { type: Number, required: false, default: null },
+  compoundLayerLSpec: { type: Number, required: false, default: null },
+  compoundLayerTarget: { type: Number, required: false, default: null },
   cdeUSpec: { type: Number, required: false, default: null },
   cdeLSpec: { type: Number, required: false, default: null },
   cdeTarget: { type: Number, required: false, default: null },

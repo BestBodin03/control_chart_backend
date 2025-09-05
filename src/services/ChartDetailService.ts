@@ -221,6 +221,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const dataWithFurnace = dataForChart.data.map(item => ({
                 furnaceNo: item.chartGeneralDetail?.furnaceNo,
                 hardness: item.machanicDetail?.surfaceHardnessMean,
+                compoundLayer: item.machanicDetail?.compoundLayer,
                 cde: item.machanicDetail?.CDE.CDEX,
                 cdt: item.machanicDetail?.CDE.CDTX,
                 date: item.chartGeneralDetail?.collectedDate
@@ -232,6 +233,12 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 item.hardness !== undefined && 
                 item.hardness !== null && 
                 !isNaN(item.hardness)
+            );
+
+            const validCompoundLayerData = dataWithFurnace.filter(item => 
+                item.compoundLayer !== undefined && 
+                item.compoundLayer !== null && 
+                !isNaN(item.compoundLayer)
             );
 
             const validCdeData = dataWithFurnace.filter(item => 
@@ -251,6 +258,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             }
             
             const hardnessValues = validHardnessData.map(item => item.hardness);
+            const compoundLayerValues = validCompoundLayerData.map(item => item.compoundLayer);
             // console.log('Hardness values:', hardnessValues.length);
             // console.log('Hardness values:', hardnessValues);
             const cdeValues = validCdeData.map(item => item.cde);
@@ -259,12 +267,20 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             
             const average = parseFloat((hardnessValues.reduce((sum, value) => sum + value, 0) / hardnessValues.length).toFixed(3));
             // console.log('Average:', average);
-            const cdeAverage = parseFloat((cdeValues.reduce((sum, value) => sum + value, 0) / cdeValues.length).toFixed(3));
-            const cdtAverage = parseFloat((cdtValues.reduce((sum, value) => sum + value, 0) / cdtValues.length).toFixed(3));
+            const compoundLayerAverage = parseFloat((compoundLayerValues.reduce((sum, value) =>
+                 sum + value, 0) / compoundLayerValues.length).toFixed(3));
+            const cdeAverage = parseFloat((cdeValues.reduce((sum, value) =>
+                 sum + value, 0) / cdeValues.length).toFixed(3));
+            const cdtAverage = parseFloat((cdtValues.reduce((sum, value) =>
+                 sum + value, 0) / cdtValues.length).toFixed(3));
 
             const movingRanges = hardnessValues
                 .slice(1)
                 .map((value, index) => +Math.abs(value - hardnessValues[index]).toFixed(3));
+
+            const compoundLayerMovingRanges = compoundLayerValues
+                .slice(1)
+                .map((value, index) => +Math.abs(value - compoundLayerValues[index]).toFixed(3));
 
             const cdeMovingRanges = cdeValues
                 .slice(1)
@@ -274,15 +290,25 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 .slice(1)
                 .map((value, index) => +Math.abs(value - cdtValues[index]).toFixed(3));
             
-            const mrAverage = parseFloat((movingRanges.reduce((sum, value) => sum + value, 0) / movingRanges.length).toFixed(3));
+            const mrAverage = parseFloat((movingRanges.reduce((sum, value) =>
+                 sum + value, 0) / movingRanges.length).toFixed(3));
+            const compoundLayerMrAverage = parseFloat((compoundLayerMovingRanges.reduce((sum, value) =>
+                 sum + value, 0) / compoundLayerMovingRanges.length).toFixed(3));
             // console.log('Moving Ranges:', movingRanges.length);
             // console.log('Moving Ranges List:', movingRanges);
             // console.log('MR Average:', mrAverage);
-            const cdeMrAverage = parseFloat((cdeMovingRanges.reduce((sum, value) => sum + value, 0) / cdeMovingRanges.length).toFixed(3));
-            const cdtMrAverage = parseFloat((cdtMovingRanges.reduce((sum, value) => sum + value, 0) / cdtMovingRanges.length).toFixed(3));
+            const cdeMrAverage = parseFloat((cdeMovingRanges.reduce((sum, value) => sum + value, 0) 
+                / cdeMovingRanges.length).toFixed(3));
+            const cdtMrAverage = parseFloat((cdtMovingRanges.reduce((sum, value) => sum + value, 0) 
+                / cdtMovingRanges.length).toFixed(3));
 
             const iChartUCL = parseFloat((average + (2.660 * mrAverage)).toFixed(3));
             const iChartLCL = parseFloat((average - (2.660 * mrAverage)).toFixed(3));
+
+            const compoundLayerIChartUCL = parseFloat((compoundLayerAverage + 
+                (2.660 * compoundLayerMrAverage)).toFixed(3));
+            const compoundLayerIChartLCL = parseFloat((compoundLayerAverage - 
+                (2.660 * compoundLayerMrAverage)).toFixed(3));
 
             const cdeIChartUCL = parseFloat((cdeAverage + (2.660 * cdeMrAverage)).toFixed(3));
             const cdeIChartLCL = parseFloat((cdeAverage - (2.660 * cdeMrAverage)).toFixed(3));
@@ -291,6 +317,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const cdtIChartLCL = parseFloat((cdtAverage - (2.660 * cdtMrAverage)).toFixed(3));
 
             const sigmaStdIchart = parseFloat((mrAverage/1.128).toFixed(3));
+            const compoundLayerSigmaStdIchart = parseFloat((compoundLayerMrAverage/1.128).toFixed(3));
             const cdeSigmaStdIchart = parseFloat((cdeMrAverage/1.128).toFixed(3));
             const cdtSigmaStdIchart = parseFloat((cdtMrAverage/1.128).toFixed(3));
 
@@ -301,6 +328,15 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 sigmaPlus1: iChartUCL - (sigmaStdIchart * 2 ), 
                 sigmaPlus2: iChartUCL - sigmaStdIchart, 
                 sigmaPlus3: iChartUCL 
+            };
+
+            const compoundLayerIChartSigma = { 
+                sigmaMinus3: compoundLayerIChartLCL, 
+                sigmaMinus2:compoundLayerIChartLCL + compoundLayerSigmaStdIchart, 
+                sigmaMinus1: compoundLayerIChartLCL + (compoundLayerSigmaStdIchart * 2 ), 
+                sigmaPlus1: compoundLayerIChartUCL - (compoundLayerSigmaStdIchart * 2 ), 
+                sigmaPlus2: compoundLayerIChartUCL - compoundLayerSigmaStdIchart, 
+                sigmaPlus3: compoundLayerIChartUCL 
             };
 
             const cdeIChartSigma = { 
@@ -324,6 +360,9 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const mrChartUCL     = parseFloat((3.267 * mrAverage).toFixed(3));
             const mrChartLCL     = 0;
 
+            const compoundLayerMrChartUCL  = parseFloat((3.267 * compoundLayerMrAverage).toFixed(3));
+            const compoundLayerMrChartLCL  = 0;
+
             const cdeMrChartUCL  = parseFloat((3.267 * cdeMrAverage).toFixed(3));
             const cdeMrChartLCL  = 0;
 
@@ -346,12 +385,17 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
 
             const yAxisRange = this.computeYAxisRange({
             hardnessValues,
+            compoundLayerValues,
             cdeValues,
             cdtValues,
             mrSpots: movingRanges,
+            compoundLayerMrSpots: compoundLayerMovingRanges,
             cdeMrSpots: cdeMovingRanges,
             cdtMrSpots: cdtMovingRanges,
             iUCL: iChartUCL, iLCL: iChartLCL, mrUCL: mrChartUCL,
+            compoundLayerIUCL: compoundLayerIChartUCL,
+            compoundLayerILCL: compoundLayerIChartLCL, 
+            compoundLayerMrUCL: compoundLayerMrChartUCL,
             cdeIUCL: cdeIChartUCL, cdeILCL: cdeIChartLCL, cdeMrUCL: cdeMrChartUCL,
             cdtIUCL: cdtIChartUCL, cdtILCL: cdtIChartLCL, cdtMrUCL: cdtMrChartUCL,
             specAttribute
@@ -359,27 +403,41 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
 
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
+
                 average: Number(average.toFixed(3)),
+                compoundLayerAverage: Number(compoundLayerAverage.toFixed(3)),
                 cdeAverage: Number(cdeAverage.toFixed(3)),
                 cdtAverage: Number(cdtAverage.toFixed(3)),
+
                 MRAverage: Number(mrAverage.toFixed(3)),
+                compoundLayerMRAverage: Number(compoundLayerMrChartUCL.toFixed(3)),
                 cdeMRAverage: Number(cdeMrAverage.toFixed(3)),
                 cdtMRAverage:Number(cdtMrAverage.toFixed(3)),
+
                 controlLimitIChart: {
                     CL: Number(average.toFixed(3)),
                     UCL: Number(iChartUCL.toFixed(3)),
                     LCL: Number(iChartLCL.toFixed(3))
                 },
+
+                compoundLayerControlLimitIChart: {
+                    CL: Number(compoundLayerAverage.toFixed(3)),
+                    UCL: Number(compoundLayerAverage.toFixed(3)),
+                    LCL: Number(compoundLayerAverage.toFixed(3))
+                },
+                
                 cdeControlLimitIChart: {
                     CL: Number(cdeAverage.toFixed(3)),
                     UCL: Number(cdeIChartUCL.toFixed(3)),
                     LCL: Number(cdeIChartLCL.toFixed(3))
                 },
+
                 cdtControlLimitIChart: {
                     CL: Number(cdtAverage.toFixed(3)),
                     UCL: Number(cdtIChartUCL.toFixed(3)),
                     LCL: Number(cdtIChartLCL.toFixed(3))
                 },
+
                 sigmaIChart: {
                     sigmaMinus3: Number(iChartSigma.sigmaMinus3.toFixed(3)),
                     sigmaMinus2: Number(iChartSigma.sigmaMinus2.toFixed(3)),
@@ -388,6 +446,16 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                     sigmaPlus2: Number(iChartSigma.sigmaPlus2.toFixed(3)),
                     sigmaPlus3: Number(iChartSigma.sigmaPlus3.toFixed(3))
                 },
+
+                compoundLayerSigmaIChart: {
+                    sigmaMinus3: Number(compoundLayerIChartSigma.sigmaMinus3.toFixed(3)),
+                    sigmaMinus2: Number(compoundLayerIChartSigma.sigmaMinus2.toFixed(3)),
+                    sigmaMinus1: Number(compoundLayerIChartSigma.sigmaMinus1.toFixed(3)),
+                    sigmaPlus1: Number(compoundLayerIChartSigma.sigmaPlus1.toFixed(3)),
+                    sigmaPlus2: Number(compoundLayerIChartSigma.sigmaPlus2.toFixed(3)),
+                    sigmaPlus3: Number(compoundLayerIChartSigma.sigmaPlus3.toFixed(3))
+                },
+
                 cdeSigmaIChart: {
                     sigmaMinus3: Number(cdeIChartSigma.sigmaMinus3.toFixed(3)),
                     sigmaMinus2: Number(cdeIChartSigma.sigmaMinus2.toFixed(3)),
@@ -409,6 +477,12 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                     UCL: Number(mrChartUCL.toFixed(3)),
                     LCL: Number(mrChartLCL.toFixed(3))
                 },
+
+                compoundLayerControlLimitMRChart: {
+                    CL: Number(compoundLayerMrAverage.toFixed(3)),
+                    UCL: Number(compoundLayerMrAverage.toFixed(3)),
+                    LCL: Number(compoundLayerMrAverage.toFixed(3))
+                },
                 cdeControlLimitMRChart: {
                     CL: Number(cdeMrAverage.toFixed(3)),
                     UCL: Number(cdeMrChartUCL.toFixed(3)),
@@ -419,10 +493,12 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                     UCL: Number(cdtMrChartUCL.toFixed(3)),
                     LCL: Number(cdtMrChartLCL.toFixed(3))
                 },
-                surfaceHardnessChartSpots: hardnessValues ,
+                surfaceHardnessChartSpots: hardnessValues,
+                compoundLayerChartSpots: compoundLayerValues,
                 cdeChartSpots: cdeValues,
                 cdtChartSpots: cdtValues,
                 mrChartSpots: movingRanges,
+                compoundLayerMrChartSpots: compoundLayerMovingRanges,
                 cdeMrChartSpots: cdeMovingRanges,
                 cdtMrChartSpots: cdtMovingRanges,
                 specAttribute,
@@ -461,17 +537,22 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
 
     private computeYAxisRange(params: {
     hardnessValues: number[];
+    compoundLayerValues: number[];
     cdeValues: number[];
     cdtValues: number[];
     mrSpots: number[];
+    compoundLayerMrSpots: number[];
     cdeMrSpots: number[];
     cdtMrSpots: number[];
     iUCL: number;  iLCL: number;   mrUCL: number;
+    compoundLayerIUCL: number; compoundLayerILCL: number; compoundLayerMrUCL: number;
     cdeIUCL: number; cdeILCL: number; cdeMrUCL: number;
     cdtIUCL: number; cdtILCL: number; cdtMrUCL: number;
     specAttribute: {
         surfaceHardnessUpperSpec?: number;
         surfaceHardnessLowerSpec?: number;
+        compoundLayerUpperSpec?: number;
+        compoundLayerLowerSpec?: number;
         cdeUpperSpec?: number;
         cdeLowerSpec?: number;
         cdtUpperSpec?: number;
@@ -480,9 +561,10 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     };
     }): YAxisRange {
     const {
-        hardnessValues, cdeValues, cdtValues,
-        mrSpots, cdeMrSpots, cdtMrSpots,
+        hardnessValues, compoundLayerValues, cdeValues, cdtValues,
+        mrSpots, compoundLayerMrSpots, cdeMrSpots, cdtMrSpots,
         iUCL, iLCL, mrUCL,
+        compoundLayerIUCL, compoundLayerILCL, compoundLayerMrUCL,
         cdeIUCL, cdeILCL, cdeMrUCL,
         cdtIUCL, cdtILCL, cdtMrUCL,
         specAttribute
@@ -491,6 +573,9 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     const maxHardSpot = this.arrMax(hardnessValues);
     const minHardSpot = this.arrMin(hardnessValues);
 
+    const maxCompoundLayerSpot = this.arrMax(compoundLayerValues);
+    const minCompoundLayerSpot = this.arrMin(compoundLayerValues);
+
     const maxCdeSpot  = this.arrMax(cdeValues);
     const minCdeSpot  = this.arrMin(cdeValues);
 
@@ -498,6 +583,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     const minCdtSpot  = this.arrMin(cdtValues);
 
     const maxMrSpot   = this.arrMax(mrSpots);
+    const maxCompoundLayerMrSpot = this.arrMax(compoundLayerMrSpots)
     const maxCdeMr    = this.arrMax(cdeMrSpots);
     const maxCdtMr    = this.arrMax(cdtMrSpots);
 
@@ -520,23 +606,24 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
         mrUCL
         ),
 
-        // CDE I-Chart
-        maxYcdeControlChart: this.pickMax(
-        maxCdeSpot,
-        cdeIUCL,
-        specAttribute.cdeUpperSpec
+        // CompoundLayer I-Chart
+        maxYcompoundLayerControlChart: this.pickMax(
+        maxCompoundLayerSpot,
+        compoundLayerIUCL,
+        specAttribute.compoundLayerUpperSpec
         ),
-        minYcdeControlChart: this.pickMin(
-        minCdeSpot,
-        cdeILCL,
-        specAttribute.cdeLowerSpec
+        minYcompoundLayerControlChart: this.pickMin(
+        minCompoundLayerSpot,
+        compoundLayerILCL,
+        specAttribute.compoundLayerLowerSpec
         ),
 
-        // CDE MR-Chart
-        maxYcdeMrChart: this.pickMax(
-        maxCdeMr,
-        cdeMrUCL
+        // CompoundLayer MR-Chart
+        maxYcompoundLayerMrChart: this.pickMax(
+        maxCompoundLayerMrSpot,
+        compoundLayerMrUCL
         ),
+
 
         // CDT I-Chart
         maxYcdtControlChart: this.pickMax(
