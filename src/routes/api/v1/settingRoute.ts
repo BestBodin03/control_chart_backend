@@ -26,4 +26,8 @@ router.get("/setting/one-profile/:id", async (req, res) =>{
 router.get("/setting/all-profiles", async (require, res) =>{
   settingController.findAllSettingProfiles(require, res);
 })
+
+router.get("/setting/setting-profile-for-tv", async (require, res) =>{
+  settingController.findActiveSettingProfile(require, res);
+})
 export { router as settingRoutes };

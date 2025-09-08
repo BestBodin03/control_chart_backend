@@ -198,6 +198,32 @@ async updateSettingProfile(req: Request, res: Response): Promise<void> {
       });
     }
   }
+
+  async findActiveSettingProfile (req: Request, res: Response): Promise<void> {
+    try {
+      const result = await settingService.findActiveSettingProfile();
+      if (result === undefined) {
+        res.status(404).json({
+          status: "error",
+          statusCode: 404,
+          error: { message: "Active setting profile not found" },
+        });
+        return;
+      }
+      res.status(200).json({
+        status: "success",
+        statusCode: 200,
+        data: result,
+      });
+    } catch (e) {
+      res.status(500).json({
+        status: "error",
+        statusCode: 500,
+        error: { message: "Internal Server Error" },
+      });
+    }
+  }
+
 }
 
 export const settingController = new SettingController(new SettingService());

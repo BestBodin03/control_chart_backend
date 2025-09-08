@@ -143,6 +143,15 @@ export class SettingService {
     return entities.map(e => settingDTO.convertFromEntity(e));
   }
 
+  async findActiveSettingProfile(): Promise<SettingDTO[]> {
+    const allProfiles = await settingRepository.findAll();
+    const activeProfile = allProfiles.find(p => p.isUsed === true);
+
+    return activeProfile ? [settingDTO.convertFromEntity(activeProfile)] : [];
+  }
+
+
+
   // async getDynamicFurnaceAndMaterialNo(): Promise<void> {
   //   const queryParam = await
 
