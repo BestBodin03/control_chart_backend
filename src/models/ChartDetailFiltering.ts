@@ -1,5 +1,33 @@
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
 import { CustomerProduct } from "./entities/customerProduct";
+import { SecondChartSelected } from "./types/controlChart";
+
+export interface DataPoint {
+  value: number;
+  isViolatedR1BeyondLCL: boolean;
+  isViolatedR1BeyondUCL: boolean;
+  isViolatedR1BeyondLSL: boolean;
+  isViolatedR1BeyondUSL: boolean;
+  isViolatedR3: boolean;
+}
+
+// ---- NEW: กลุ่มจุดของ I-Chart และ MR-Chart ----
+export interface ChartPoints {
+  surfaceHardness: DataPoint[];
+  compoundLayer: DataPoint[];
+  cde: DataPoint[];
+  cdt: DataPoint[];
+}
+
+export const toDataPoints = (arr: number[]): DataPoint[] =>
+  arr.map((v) => ({
+    value: v,
+    isViolatedR1BeyondLCL: false,
+    isViolatedR1BeyondUCL: false,
+    isViolatedR1BeyondLSL: false,
+    isViolatedR1BeyondUSL: false,
+    isViolatedR3: false,
+  }));
 
 export interface ChartDetailsFiltering {
   period: {
@@ -34,6 +62,13 @@ export interface SigmaLevels {
 
 export interface MRChartResult {
   numberOfSpots: number;
+  secondChartSelected?: SecondChartSelected;
+
+  // isViolatedR1BeyondLCL: boolean;
+  // isViolatedR1BeyondUCL: boolean;
+  // isViolatedR1BeyondLSL: boolean;
+  // isViolatedR1BeyondUSL: boolean;
+  // isViolatedR3: boolean;
 
   average: number;
   compoundLayerAverage: number;
@@ -64,6 +99,7 @@ export interface MRChartResult {
   compoundLayerChartSpots: number[] ;
   cdeChartSpots: number[];
   cdtChartSpots: number[];
+  controlChartSpots?: ChartPoints;
 
   mrChartSpots: number[];
   compoundLayerMrChartSpots: number[];

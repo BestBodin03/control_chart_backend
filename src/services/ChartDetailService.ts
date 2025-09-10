@@ -1,11 +1,14 @@
 import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
-import { ChartDetailsFiltering, FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/chartDetailFiltering";
+import { ChartDetailsFiltering, ChartPoints, ControlLimits, DataPoint, FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/chartDetailFiltering";
 import { Router, Request, Response } from "express";
 import { chartDetailController, customerProductService } from "../utils/serviceLocator";
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
 import { ChartDetailRepository } from "../repositories/chartDetailRepo";
 import { any } from "zod";
 import { CustomerProduct } from "../models/entities/customerProduct";
+import { R3Result, TrendSegment } from "../models/types/nelsonRule3";
+import { R1Result } from "../models/types/nelsonRule1";
+import { SecondChartSelected, Specs } from "../models/types/controlChart";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {
@@ -253,8 +256,8 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 !isNaN(item.cdt)
             );
             
-            if (validHardnessData.length < 2) {
-                throw new Error('ไม่สามารถแสดงแผนภูมิควบคุมได้ เนื่องจากข้อมูลน้อยกว่า 2 รายการ');
+            if (validHardnessData.length < 5) {
+                throw new Error('ไม่สามารถแสดงแผนภูมิควบคุมได้ เนื่องจากข้อมูลน้อยกว่า 5 รายการ');
             }
             
             const hardnessValues = validHardnessData.map(item => item.hardness);
@@ -401,9 +404,57 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             specAttribute
             });
 
+            // NELSON RULE CHECKER //
+            // 1) control limit + spec ของแต่ละซีรีส์
+            const hardnessCtrl = { CL: average, UCL: iChartUCL, LCL: iChartLCL };
+            const hardnessSpec = {
+            USL: specAttribute.surfaceHardnessUpperSpec,
+            LSL: specAttribute.surfaceHardnessLowerSpec,
+            };
+
+            const compoundCtrl = { CL: compoundLayerAverage, UCL: compoundLayerIChartUCL, LCL: compoundLayerIChartLCL };
+            const compoundSpec = {
+            USL: specAttribute.compoundLayerUpperSpec,
+            LSL: specAttribute.compoundLayerLowerSpec,
+            };
+
+            const cdeCtrl = { CL: cdeAverage, UCL: cdeIChartUCL, LCL: cdeIChartLCL };
+            const cdeSpec = {
+            USL: specAttribute.cdeUpperSpec,
+            LSL: specAttribute.cdeLowerSpec,
+            };
+
+            const cdtCtrl = { CL: cdtAverage, UCL: cdtIChartUCL, LCL: cdtIChartLCL };
+            const cdtSpec = {
+            USL: specAttribute.cdtUpperSpec,
+            LSL: specAttribute.cdtLowerSpec,
+            };
+
+            // 2) ได้ DataPoint[] ของแต่ละซีรีส์ (เช็ค R1 + R3)
+            const hardnessPoints = this.buildControlChartPoints(hardnessValues, hardnessCtrl, hardnessSpec, 6);
+            const compoundPoints = this.buildControlChartPoints(compoundLayerValues, compoundCtrl, compoundSpec, 6);
+            const cdePoints      = this.buildControlChartPoints(cdeValues, cdeCtrl, cdeSpec, 6);
+            const cdtPoints      = this.buildControlChartPoints(cdtValues, cdtCtrl, cdtSpec, 6);
+
+            // 3) bundle เป็น ChartPoints
+            const controlChartSpotsChecked: ChartPoints = {
+            surfaceHardness: hardnessPoints,
+            compoundLayer : compoundPoints,
+            cde           : cdePoints,
+            cdt           : cdtPoints,
+            };
+
+            const secondChartSelected = this.resolveSecondChartSelected(
+                filters,
+                cdeValues,
+                cdtValues,
+                cdeAverage,
+                cdtAverage
+            );
+
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
-
+                secondChartSelected: secondChartSelected,
                 average: Number(average.toFixed(3)),
                 compoundLayerAverage: Number(compoundLayerAverage.toFixed(3)),
                 cdeAverage: Number(cdeAverage.toFixed(3)),
@@ -497,6 +548,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 compoundLayerChartSpots: compoundLayerValues,
                 cdeChartSpots: cdeValues,
                 cdtChartSpots: cdtValues,
+                controlChartSpots: controlChartSpotsChecked,
                 mrChartSpots: movingRanges,
                 compoundLayerMrChartSpots: compoundLayerMovingRanges,
                 cdeMrChartSpots: cdeMovingRanges,
@@ -643,6 +695,105 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
         cdtMrUCL
         ),
     };
+    }
+
+    private nelsonRule1Checker(
+    values: number[],
+    limits: { CL: number; UCL: number; LCL: number },
+    specs?: Specs
+    ) {
+    const beyondUCL = values.map(v => v > limits.UCL);
+    const beyondLCL = values.map(v => v < limits.LCL);
+    const beyondUSL = values.map(v => (specs?.USL == null ? false : v > specs.USL));
+    const beyondLSL = values.map(v => (specs?.LSL == null ? false : v < specs.LSL));
+    return { beyondUCL, beyondLCL, beyondUSL, beyondLSL };
+    }
+
+    private nelsonRule3Checker(values: number[], runLength = 6): boolean[] {
+    const n = values.length;
+    const flags = new Array<boolean>(n).fill(false);
+    if (n < runLength) return flags;
+
+    let inc = 0;
+    let dec = 0;
+
+    for (let i = 1; i < n; i++) {
+        if (values[i] > values[i - 1]) { inc++; dec = 0; }
+        else if (values[i] < values[i - 1]) { dec++; inc = 0; }
+        else { inc = 0; dec = 0; }
+
+        if (inc >= runLength - 1 || dec >= runLength - 1) {
+        for (let k = 0; k < runLength; k++) {
+            const idx = i - k;
+            if (idx >= 0) flags[idx] = true;
+        }
+        }
+    }
+    return flags;
+    }
+
+    private buildControlChartPoints(
+    values: number[],
+    limits: { CL: number; UCL: number; LCL: number },
+    specs?: Specs,
+    r3RunLength = 6
+    ): DataPoint[] {
+    const r1 = this.nelsonRule1Checker(values, limits, specs);
+    const r3 = this.nelsonRule3Checker(values, r3RunLength);
+
+    return values.map((v, i) => ({
+        value: v,
+        isViolatedR1BeyondLCL: r1.beyondLCL[i],
+        isViolatedR1BeyondUCL: r1.beyondUCL[i],
+        isViolatedR1BeyondLSL: r1.beyondLSL[i],
+        isViolatedR1BeyondUSL: r1.beyondUSL[i],
+        isViolatedR3: r3[i],
+    }));
+    }
+
+    private resolveSecondChartSelected(
+    filters: ChartDetailsFiltering | undefined,
+    cdeValues: number[] | undefined,
+    cdtValues: number[] | undefined,
+    cdeAverage: number | undefined,
+    cdtAverage: number | undefined
+    ): SecondChartSelected {
+    // normalize furnaceNo
+    const furnaceNoStr = (filters?.furnaceNo ?? "").toString().trim();
+    const parsed = parseInt(furnaceNoStr, 10);
+    const furnaceNum = Number.isFinite(parsed) ? parsed : NaN;
+
+    // 1) force COMPOUND LAYER if furnaceNo 1/2/3
+    if ([1, 2, 3].includes(furnaceNum)) {
+        return SecondChartSelected.COMPOUND_LAYER;
+    }
+
+    // 2) availability checks
+    const hasCDE = Array.isArray(cdeValues) && cdeValues.length > 0;
+    const hasCDT = Array.isArray(cdtValues) && cdtValues.length > 0;
+
+    // 3) if either average is exactly zero → NA
+    const cdeOK = typeof cdeAverage === "number" && Number.isFinite(cdeAverage);
+    const cdtOK = typeof cdtAverage === "number" && Number.isFinite(cdtAverage);
+    if ((cdeOK && cdeAverage === 0) || (cdtOK && cdtAverage === 0)) {
+        return SecondChartSelected.NA; // <- you said you already added this enum member
+    }
+
+    if (hasCDE && hasCDT) {
+        // Compare by averages (fallback to CDE on tie/invalid)
+        if (cdeOK && cdtOK) {
+        return cdeAverage >= cdtAverage
+            ? SecondChartSelected.CDE
+            : SecondChartSelected.CDT;
+        }
+        return SecondChartSelected.CDE;
+    }
+
+    if (hasCDE) return SecondChartSelected.CDE;
+    if (hasCDT) return SecondChartSelected.CDT;
+
+    // 4) no CDE/CDT data → keep your previous default (or switch to NA if you prefer)
+    return SecondChartSelected.CDE;
     }
 
 }
