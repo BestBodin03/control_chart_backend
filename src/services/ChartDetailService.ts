@@ -133,7 +133,7 @@ export class ChartDetailService {
         ).sort((a: any, b: any) => b.count - a.count);
         
         return {
-            data: filteredData,
+            data: filteredData.reverse(),
             total: filteredData.length,
             filters,
             summary
@@ -260,12 +260,12 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 throw new Error('ไม่สามารถแสดงแผนภูมิควบคุมได้ เนื่องจากข้อมูลน้อยกว่า 5 รายการ');
             }
             
-            const hardnessValues = validHardnessData.map(item => item.hardness);
-            const compoundLayerValues = validCompoundLayerData.map(item => item.compoundLayer);
+            const hardnessValues = validHardnessData.map(item => item.hardness).reverse();
+            const compoundLayerValues = validCompoundLayerData.map(item => item.compoundLayer).reverse();
             // console.log('Hardness values:', hardnessValues.length);
             // console.log('Hardness values:', hardnessValues);
-            const cdeValues = validCdeData.map(item => item.cde);
-            const cdtValues = validCdtData.map(item => item.cdt);
+            const cdeValues = validCdeData.map(item => item.cde).reverse();
+            const cdtValues = validCdtData.map(item => item.cdt).reverse();
 
             
             const average = parseFloat((hardnessValues.reduce((sum, value) => sum + value, 0) / hardnessValues.length).toFixed(3));
@@ -448,8 +448,10 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 filters,
                 cdeValues,
                 cdtValues,
+                compoundLayerValues,
                 cdeAverage,
-                cdtAverage
+                cdtAverage,
+                compoundLayerAverage
             );
 
             const result: MRChartResult = {
@@ -587,6 +589,10 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     return nums.length ? Math.min(...nums) : 0;
     }
 
+    private specOrNull(v: number | null | undefined): number | null {
+    return (typeof v === 'number' && Number.isFinite(v) && v !== 0) ? v : null;
+    }
+
     private computeYAxisRange(params: {
     hardnessValues: number[];
     compoundLayerValues: number[];
@@ -639,17 +645,26 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     const maxCdeMr    = this.arrMax(cdeMrSpots);
     const maxCdtMr    = this.arrMax(cdtMrSpots);
 
+    const shUSpec = this.specOrNull(specAttribute.surfaceHardnessUpperSpec);
+    const shLSpec = this.specOrNull(specAttribute.surfaceHardnessLowerSpec);
+    const clUSpec = this.specOrNull(specAttribute.compoundLayerUpperSpec);
+    const clLSpec = this.specOrNull(specAttribute.compoundLayerLowerSpec);
+    const cdeUSpec = this.specOrNull(specAttribute.cdeUpperSpec);
+    const cdeLSpec = this.specOrNull(specAttribute.cdeLowerSpec);
+    const cdtUSpec = this.specOrNull(specAttribute.cdtUpperSpec);
+    const cdtLSpec = this.specOrNull(specAttribute.cdtLowerSpec);
+
     return {
         // Surface Hardness I-Chart
         maxYsurfaceHardnessControlChart: this.pickMax(
         maxHardSpot,
         iUCL,
-        specAttribute.surfaceHardnessUpperSpec
+        shUSpec,           // ⬅️ ใช้ spec ที่ผ่านการกรอง 0 แล้ว
         ),
         minYsurfaceHardnessControlChart: this.pickMin(
         minHardSpot,
         iLCL,
-        specAttribute.surfaceHardnessLowerSpec
+        shLSpec,           // ⬅️ ถ้าเป็น 0 จะไม่ถูกใช้
         ),
 
         // Surface Hardness MR-Chart
@@ -662,12 +677,12 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
         maxYcompoundLayerControlChart: this.pickMax(
         maxCompoundLayerSpot,
         compoundLayerIUCL,
-        specAttribute.compoundLayerUpperSpec
+        clUSpec
         ),
         minYcompoundLayerControlChart: this.pickMin(
         minCompoundLayerSpot,
         compoundLayerILCL,
-        specAttribute.compoundLayerLowerSpec
+        clLSpec
         ),
 
         // CompoundLayer MR-Chart
@@ -676,17 +691,16 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
         compoundLayerMrUCL
         ),
 
-
         // CDT I-Chart
         maxYcdtControlChart: this.pickMax(
         maxCdtSpot,
         cdtIUCL,
-        specAttribute.cdtUpperSpec
+        cdtUSpec
         ),
         minYcdtControlChart: this.pickMin(
         minCdtSpot,
         cdtILCL,
-        specAttribute.cdtLowerSpec
+        cdtLSpec
         ),
 
         // CDT MR-Chart
@@ -751,49 +765,67 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     }));
     }
 
-    private resolveSecondChartSelected(
-    filters: ChartDetailsFiltering | undefined,
-    cdeValues: number[] | undefined,
-    cdtValues: number[] | undefined,
-    cdeAverage: number | undefined,
-    cdtAverage: number | undefined
-    ): SecondChartSelected {
-    // normalize furnaceNo
-    const furnaceNoStr = (filters?.furnaceNo ?? "").toString().trim();
-    const parsed = parseInt(furnaceNoStr, 10);
-    const furnaceNum = Number.isFinite(parsed) ? parsed : NaN;
-
-    // 1) force COMPOUND LAYER if furnaceNo 1/2/3
-    if ([1, 2, 3].includes(furnaceNum)) {
-        return SecondChartSelected.COMPOUND_LAYER;
+    private isFiniteNumber(v: unknown): v is number {
+    return typeof v === "number" && Number.isFinite(v);
+    }
+    private hasNumbers(a?: unknown): a is number[] {
+    // Fast non-alloc check for non-empty numeric array
+    return Array.isArray(a) && a.length > 0;
     }
 
-    // 2) availability checks
-    const hasCDE = Array.isArray(cdeValues) && cdeValues.length > 0;
-    const hasCDT = Array.isArray(cdtValues) && cdtValues.length > 0;
+private resolveSecondChartSelected(
+  filters: ChartDetailsFiltering | undefined,
+  cdeValues: number[] | undefined,
+  cdtValues: number[] | undefined,
+  compoundLayerValues: number[] | undefined,
+  cdeAverage: number | undefined,
+  cdtAverage: number | undefined,
+  compoundLayerAverage: number | undefined // <- was number[] in your snippet; should be number
+): SecondChartSelected {
+  // Normalize furnaceNo (O(1))
+  const f = filters?.furnaceNo;
+  const furnaceNum = typeof f === "number"
+    ? f
+    : Number.parseInt((f ?? "").toString().trim(), 10);
 
-    // 3) if either average is exactly zero → NA
-    const cdeOK = typeof cdeAverage === "number" && Number.isFinite(cdeAverage);
-    const cdtOK = typeof cdtAverage === "number" && Number.isFinite(cdtAverage);
-    if ((cdeOK && cdeAverage === 0) || (cdtOK && cdtAverage === 0)) {
-        return SecondChartSelected.NA; // <- you said you already added this enum member
+  // Availability flags (O(1))
+  const hasCDE = this.hasNumbers(cdeValues);
+  const hasCDT = this.hasNumbers(cdtValues);
+  const hasCL  = this.hasNumbers(compoundLayerValues);
+
+  const cdeOK = this.isFiniteNumber(cdeAverage);
+  const cdtOK = this.isFiniteNumber(cdtAverage);
+
+  // If either average is exactly zero → NA (your original intent)
+
+  // If we have CL and furnace is 1..3 → force COMPOUND_LAYER
+  // (avoid temporary array + includes)
+  if (hasCL && Number.isFinite(furnaceNum) && furnaceNum >= 1 && furnaceNum <= 3) {
+    return SecondChartSelected.COMPOUND_LAYER;
+  }
+
+    if ((cdeOK && cdeAverage === 0) && (cdtOK && cdtAverage === 0)) {
+        return SecondChartSelected.NA;
     }
 
-    if (hasCDE && hasCDT) {
-        // Compare by averages (fallback to CDE on tie/invalid)
-        if (cdeOK && cdtOK) {
-        return cdeAverage >= cdtAverage
-            ? SecondChartSelected.CDE
-            : SecondChartSelected.CDT;
-        }
-        return SecondChartSelected.CDE;
+  // If both CDE & CDT exist → compare averages (fallback CDE on tie/invalid)
+  if (hasCDE && hasCDT) {
+    if (cdeOK && cdtOK) {
+      return cdeAverage! >= cdtAverage! ? SecondChartSelected.CDE : SecondChartSelected.CDT;
     }
-
-    if (hasCDE) return SecondChartSelected.CDE;
-    if (hasCDT) return SecondChartSelected.CDT;
-
-    // 4) no CDE/CDT data → keep your previous default (or switch to NA if you prefer)
     return SecondChartSelected.CDE;
-    }
+  }
 
+  // Single-side availability
+  if (hasCDE) return SecondChartSelected.CDE;
+  if (hasCDT) return SecondChartSelected.CDT;
+
+  // If neither CDE/CDT but CL exists, prefer CL (optional: also check finite avg)
+  if (hasCL && this.isFiniteNumber(compoundLayerAverage)) {
+    return SecondChartSelected.COMPOUND_LAYER;
+  }
+
+  // Final fallback
+  return SecondChartSelected.NA;
+}
 }
