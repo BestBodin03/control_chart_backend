@@ -1,6 +1,6 @@
 import { ChartDetailModel } from "../models/entities/chartDetail";
 import { Setting } from "../models/entities/setting";
-import { SettingDTO } from "../models/validations/settingValidate";
+import { SettingDTO } from "../models/validations/SettingValidate";
 
 export interface PeriodFilter {
   startDate: string; // ISO string

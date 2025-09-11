@@ -3,15 +3,15 @@ import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
 import { CustomerProductData, CustomerProduct } from "../models/entities/customerProduct";
 import { FurnaceData, Furnace, FurnaceModel } from "../models/entities/furnace";
 // import { ChartDetailService } from "./chartDetailService";
-import { CustomerProductService } from "./customerProductService";
-import { FurnaceService } from "./furnaceService";
+import { CustomerProductService } from "./CustomerProductService";
+import { FurnaceService } from "./FurnaceService";
 // import { MASTER_API } from "../config/constans";
 import { furnaceService, customerProductService, chartDetailService } from "../utils/serviceLocator";
 import dotenv from 'dotenv';
-import { MasterDataServiceHelper } from "./masterDataServiceHelper";
-import { MasterApiResponse, MasterApiRequest } from "../models/masterApiResponse";
-import { FurnaceCodeEncoder } from "../utils/masterDataFgEncoder";
-import { ChartDetailService } from "./chartDetailService";
+import { MasterDataServiceHelper } from "./MasterDataServiceHelper";
+import { MasterApiResponse, MasterApiRequest } from "../models/MasterApiResponse";
+import { FurnaceCodeEncoder } from "../utils/masterDataFGEncoder";
+import { ChartDetailService } from "./ChartDetailService";
 
 dotenv.config({ path: '.env' });
 

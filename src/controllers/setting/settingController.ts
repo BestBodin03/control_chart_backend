@@ -1,7 +1,7 @@
 // controllers/setting.controller.ts
 import { Request, Response } from "express";
-import { SettingService } from "../../services/settingService";
-import { createSettingProfileRequestSchema, deleteSettingProfileRequestSchema, objectIdSchema, updateSettingProfileRequestSchema } from "../../models/validations/settingValidate";
+import { SettingService } from "../../services/SettingService";
+import { createSettingProfileRequestSchema, deleteSettingProfileRequestSchema, objectIdSchema, updateSettingProfileRequestSchema } from "../../models/validations/SettingValidate";
 import { ZodError } from "zod";
 import { settingService } from "../../utils/serviceLocator";
 

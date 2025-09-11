@@ -1,17 +1,17 @@
-import { ChartDetailController } from "../controllers/chartDetailController";
-import { CustomerProductController } from "../controllers/customerProductController";
-import { FurnaceController } from "../controllers/furnaceController";
+import { ChartDetailController } from "../controllers/ChartDetailController";
+import { CustomerProductController } from "../controllers/CustomerProductController";
+import { FurnaceController } from "../controllers/FurnaceController";
 import { MasterDataController } from "../controllers/masterDataController";
-import { PeriodFilterController } from "../controllers/periodFilterController";
+import { PeriodFilterController } from "../controllers/PeriodFilterController";
 import { ChartDetailRepository } from "../repositories/chartDetailRepo";
 import { CustomerProductRepository } from "../repositories/customerProductRepo";
 import { FurnaceRepository } from "../repositories/furnaceRepo";
-import { SettingRepository } from "../repositories/settingRepo";
-import { ChartDetailService } from "../services/chartDetailService";
-import { CustomerProductService } from "../services/customerProductService";
-import { FurnaceService } from "../services/furnaceService";
+import { SettingRepository } from "../repositories/SettingRepo";
+import { ChartDetailService } from "../services/ChartDetailService";
+import { CustomerProductService } from "../services/CustomerProductService";
+import { FurnaceService } from "../services/FurnaceService";
 import { MasterDataService } from "../services/masterDataService";
-import { SettingService } from "../services/settingService";
+import { SettingService } from "../services/SettingService";
 
 export const furnaceRepository = new FurnaceRepository();
 export const furnaceService = new FurnaceService(furnaceRepository);

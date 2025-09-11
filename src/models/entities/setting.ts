@@ -1,7 +1,7 @@
 import { Document, Schema, Types, model } from "mongoose";
-import { DisplayType } from "../enums/displayType";
-import { PeriodType } from "../enums/periodType";
-import { settingEntitySchema } from "../validations/settingValidate";
+import { DisplayType } from "../enums/DisplayType";
+import { PeriodType } from "../enums/PeriodType";
+import { settingEntitySchema } from "../validations/SettingValidate";
 import { NelsonRule } from "../../controllers/setting/settingResponse";
 
 export interface SettingSchema {

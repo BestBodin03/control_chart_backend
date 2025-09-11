@@ -2,6 +2,12 @@ import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
 import { CustomerProduct } from "./entities/customerProduct";
 import { SecondChartSelected } from "./types/controlChart";
 
+export interface DataPointShow {
+  value: number;
+  furnaceNo: number;
+  matNo: string;
+  collectedDate: Date; // ISO string
+}
 export interface DataPoint {
   value: number;
   isViolatedR1BeyondLCL: boolean;
@@ -95,10 +101,10 @@ export interface MRChartResult {
   cdeControlLimitMRChart: ControlLimits;
   cdtControlLimitMRChart: ControlLimits;
 
-  surfaceHardnessChartSpots: number[];
-  compoundLayerChartSpots: number[] ;
-  cdeChartSpots: number[];
-  cdtChartSpots: number[];
+  surfaceHardnessChartSpots: DataPointShow[];
+  compoundLayerChartSpots: DataPointShow[];
+  cdeChartSpots: DataPointShow[];
+  cdtChartSpots: DataPointShow[];
   controlChartSpots?: ChartPoints;
 
   mrChartSpots: number[];

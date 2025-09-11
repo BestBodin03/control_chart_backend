@@ -1,5 +1,5 @@
-import { DisplayType } from "../../models/enums/displayType";
-import { PeriodType } from "../../models/enums/periodType";
+import { DisplayType } from "../../models/enums/DisplayType";
+import { PeriodType } from "../../models/enums/PeriodType";
 
 export type NelsonRule = {
     ruleId: number;

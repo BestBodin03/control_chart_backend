@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 // import { ChartDetailService } from '../services/chartDetailService';
-import { CustomerProductService } from '../services/customerProductService';
-import { FurnaceService } from '../services/furnaceService';
+import { CustomerProductService } from '../services/CustomerProductService';
+import { FurnaceService } from '../services/FurnaceService';
 import { MasterDataService } from '../services/masterDataService';
-import { MasterApiRequest } from '../models/masterApiResponse';
-import { autoCompleteEndDate } from '../utils/masterDataFgEncoder';
+import { MasterApiRequest } from '../models/MasterApiResponse';
+import { autoCompleteEndDate } from '../utils/masterDataFGEncoder';
 import { any } from 'zod';
 import { furnaceCacheController } from './furnaceCacheController';
 import { furnaceMaterialCacheService } from '../services/furnaceMaterialCacheService';

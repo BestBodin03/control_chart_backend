@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { Setting, SettingSchema } from "../models/entities/setting";
-import { CreateSettingProfileRequest, SettingDTO, SettingEntity, settingEntitySchema, UpdateSettingProfileRequest } from "../models/validations/settingValidate";
+import { CreateSettingProfileRequest, SettingDTO, SettingEntity, settingEntitySchema, UpdateSettingProfileRequest } from "../models/validations/SettingValidate";
 
 export class SettingRepository {
     readonly oid = (id: string) => new Types.ObjectId(id);

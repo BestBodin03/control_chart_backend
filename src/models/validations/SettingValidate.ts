@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { now, Types } from "mongoose";
-import { displayTypeLiterals, displayTypeSchema } from "../enums/displayType";
-import { periodTypeLiterals, periodTypeSchema } from "../enums/periodType";
+import { displayTypeLiterals, displayTypeSchema } from "../enums/DisplayType";
+import { periodTypeLiterals, periodTypeSchema } from "../enums/PeriodType";
 
 export const settingEntitySchema = z.object({
   _id: z.instanceof(Types.ObjectId),

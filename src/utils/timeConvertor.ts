@@ -1,4 +1,4 @@
-import { PeriodType } from "../models/enums/periodType";
+import { PeriodType } from "../models/enums/PeriodType";
 
 export interface DateRange {
   startDate: Date;
