@@ -223,8 +223,6 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             
             const dataWithFurnace = dataForChart.data.map(item => ({
                 furnaceNo: item.chartGeneralDetail?.furnaceNo,
-                matNo: item.CPNo,
-                partName: item.chartGeneralDetail?.partName,
                 hardness: item.machanicDetail?.surfaceHardnessMean,
                 compoundLayer: item.machanicDetail?.compoundLayer,
                 cde: item.machanicDetail?.CDE.CDEX,
@@ -269,34 +267,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const cdeValues = validCdeData.map(item => item.cde).reverse();
             const cdtValues = validCdtData.map(item => item.cdt).reverse();
 
-            const surfaceHardnessSpots = validHardnessData.map(item => ({
-                value: item.hardness,
-                furnaceNo: item.furnaceNo, 
-                matNo: item.matNo,
-                partName: item.partName, 
-                collectedDate: item.date}));
-            const compoundLayerSpots = validCompoundLayerData.map(item => ({
-                value: item.compoundLayer,
-                furnaceNo: item.furnaceNo,
-                matNo: item.matNo,
-                partName: item.partName,
-                collectedDate: item.date
-            }));
-            const cdeSpots = validCdeData.map(item => ({
-                value: item.cde,
-                furnaceNo: item.furnaceNo,
-                matNo: item.matNo,
-                partName: item.partName,
-                collectedDate: item.date
-            }));
-            const cdtSpots = validCdtData.map(item => ({
-                value: item.cdt,
-                furnaceNo: item.furnaceNo,
-                matNo: item.matNo,
-                partName: item.partName,
-                collectedDate: item.date
-            }));
-
+            
             const average = parseFloat((hardnessValues.reduce((sum, value) => sum + value, 0) / hardnessValues.length).toFixed(3));
             // console.log('Average:', average);
             const compoundLayerAverage = parseFloat((compoundLayerValues.reduce((sum, value) =>
@@ -575,10 +546,10 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                     UCL: Number(cdtMrChartUCL.toFixed(3)),
                     LCL: Number(cdtMrChartLCL.toFixed(3))
                 },
-                surfaceHardnessChartSpots: surfaceHardnessSpots,
-                compoundLayerChartSpots: compoundLayerSpots,
-                cdeChartSpots: cdeSpots,
-                cdtChartSpots: cdtSpots,
+                surfaceHardnessChartSpots: hardnessValues,
+                compoundLayerChartSpots: compoundLayerValues,
+                cdeChartSpots: cdeValues,
+                cdtChartSpots: cdtValues,
                 controlChartSpots: controlChartSpotsChecked,
                 mrChartSpots: movingRanges,
                 compoundLayerMrChartSpots: compoundLayerMovingRanges,
