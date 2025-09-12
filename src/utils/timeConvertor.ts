@@ -18,16 +18,16 @@ export class TimeConverter {
     switch (periodType) {
       case PeriodType.ONE_MONTH:
         return {
-          startDate: new Date(now.getFullYear(), now.getMonth(), 1),
-          endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        };
-
-      case PeriodType.ONE_MONTH:
-        const days = pastDays || 30;
-        return {
-          startDate: new Date(now.getTime() - (days * 24 * 60 * 60 * 1000)),
+          startDate: new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()),
           endDate: now
         };
+
+      // case PeriodType.ONE_MONTH:
+      //   const days = pastDays || 30;
+      //   return {
+      //     startDate: new Date(now.getTime() - (days * 24 * 60 * 60 * 1000)),
+      //     endDate: now
+      //   };
 
       case PeriodType.THREE_MONTHS:
         return {

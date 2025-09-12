@@ -1,8 +1,8 @@
-import { ChartDetailController } from "../controllers/ChartDetailController";
-import { CustomerProductController } from "../controllers/CustomerProductController";
-import { FurnaceController } from "../controllers/FurnaceController";
+import { ChartDetailController } from "../controllers/chartDetailController";
+import { CustomerProductController } from "../controllers/customerProductController";
+import { FurnaceController } from "../controllers/furnaceController";
 import { MasterDataController } from "../controllers/masterDataController";
-import { PeriodFilterController } from "../controllers/PeriodFilterController";
+import { PeriodFilterController } from "../controllers/periodFilterController";
 import { ChartDetailRepository } from "../repositories/chartDetailRepo";
 import { CustomerProductRepository } from "../repositories/customerProductRepo";
 import { FurnaceRepository } from "../repositories/furnaceRepo";

@@ -475,8 +475,8 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
 
                 compoundLayerControlLimitIChart: {
                     CL: Number(compoundLayerAverage.toFixed(3)),
-                    UCL: Number(compoundLayerAverage.toFixed(3)),
-                    LCL: Number(compoundLayerAverage.toFixed(3))
+                    UCL: Number(compoundLayerIChartUCL.toFixed(3)),
+                    LCL: Number(compoundLayerIChartLCL.toFixed(3))
                 },
                 
                 cdeControlLimitIChart: {
@@ -533,8 +533,8 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
 
                 compoundLayerControlLimitMRChart: {
                     CL: Number(compoundLayerMrAverage.toFixed(3)),
-                    UCL: Number(compoundLayerMrAverage.toFixed(3)),
-                    LCL: Number(compoundLayerMrAverage.toFixed(3))
+                    UCL: Number(compoundLayerMrChartUCL.toFixed(3)),
+                    LCL: Number(compoundLayerMrChartLCL.toFixed(3))
                 },
                 cdeControlLimitMRChart: {
                     CL: Number(cdeMrAverage.toFixed(3)),
