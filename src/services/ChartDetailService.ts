@@ -1,5 +1,5 @@
 import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
-import { ChartDetailsFiltering, ChartPoints, ControlLimits, DataPoint, FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/ChartDetailFiltering";
+import { ChartDetailsFiltering, ChartPoints, ControlLimits, DataPoint, FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/chartDetailFiltering";
 import { Router, Request, Response } from "express";
 import { chartDetailController, customerProductService } from "../utils/serviceLocator";
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";

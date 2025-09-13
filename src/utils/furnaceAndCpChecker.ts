@@ -1,4 +1,4 @@
-import { CreateSettingProfileRequest } from "../models/validations/SettingValidate";
+import { CreateSettingProfileRequest } from "../models/validations/settingValidate";
 import { FurnaceRepository } from "../repositories/furnaceRepo";
 
 const pairKey = (f: number, cp: string) => `${f}|${cp.trim()}`;

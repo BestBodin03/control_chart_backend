@@ -1,7 +1,7 @@
 import { DeleteReport } from "../models/deleteType";
 import { FurnaceModel } from "../models/entities/furnace";
 import { fromEntity, toEntity } from "../models/mapper/settingMapper";
-import { CreateSettingProfileRequest, settingDTO, SettingDTO, SettingEntity, UpdateSettingProfileRequest } from "../models/validations/SettingValidate";
+import { CreateSettingProfileRequest, settingDTO, SettingDTO, SettingEntity, UpdateSettingProfileRequest } from "../models/validations/settingValidate";
 import { assertAllowedFurnaceCp } from "../utils/furnaceAndCpChecker";
 import { cpRepository, furnaceRepository, settingRepository } from "../utils/serviceLocator";
 import { TimeConverter } from "../utils/timeConvertor";

@@ -3,8 +3,8 @@ import {
   CreateSettingProfileRequest,
   SettingDTO,
   settingDTOSchema,
-} from "../validations/SettingValidate";
-import { SettingEntity } from "../validations/SettingValidate"; // or your entity model path
+} from "../validations/settingValidate";
+import { SettingEntity } from "../validations/settingValidate"; // or your entity model path
 
 // 1) DTO (request) -> Entity (for repo.save)
 export const toEntity = (req: CreateSettingProfileRequest): SettingEntity => {

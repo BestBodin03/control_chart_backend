@@ -1,4 +1,4 @@
-import { DisplayType } from "../../models/enums/DisplayType";
+import { DisplayType } from "../../models/enums/displayType";
 import { GeneralSetting, SpecificSetting } from "./settingResponse";
 
 export type SettingRequest = {
