@@ -1,5 +1,6 @@
 import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
-import { ChartDetailsFiltering, ChartPoints, ControlLimits, DataPoint, FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/chartDetailFiltering";
+import { ChartDetailsFiltering, ChartPoints, ControlLimits, DataPoint, 
+    FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/chartDetailFiltering";
 import { Router, Request, Response } from "express";
 import { chartDetailController, customerProductService } from "../utils/serviceLocator";
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
@@ -9,6 +10,7 @@ import { CustomerProduct } from "../models/entities/customerProduct";
 import { R3Result, TrendSegment } from "../models/types/nelsonRule3";
 import { R1Result } from "../models/types/nelsonRule1";
 import { SecondChartSelected, Specs } from "../models/types/controlChart";
+import { PeriodType } from "../models/enums/periodType";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {
@@ -444,6 +446,31 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             cdt           : cdtPoints,
             };
 
+            const xAxisForMedium = this.xAxisTickLabelMedium(
+            filters?.period.startDate ?? '',
+            filters?.period.endDate ?? '',
+            dataForChart.total
+            );
+
+            const xAxisForLarge = this.xAxisTickLabelLarge(
+            filters?.period.startDate ?? '',
+            filters?.period.endDate ?? '',
+            dataForChart.total
+            );
+
+            console.log(xAxisForMedium);
+
+            if (!filters?.period.startDate || !filters?.period.endDate) {
+            throw new Error("Start and end date are required");
+            }
+
+            const periodTypeName = this.inferPeriodTypeFromRange(
+            new Date(filters.period.startDate),
+            new Date(filters.period.endDate)
+            );
+
+            const xAxisTick: number = periodTypeName === 'ONE_MONTH' ? 4 : 6;
+
             const secondChartSelected = this.resolveSecondChartSelected(
                 filters,
                 cdeValues,
@@ -457,11 +484,14 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
                 secondChartSelected: secondChartSelected,
+                periodType: periodTypeName,
+                xTick: xAxisTick,
+                xAxisMediumLabel: xAxisForMedium,
+                xAxisLargeLabel: xAxisForLarge,
                 average: Number(average.toFixed(3)),
                 compoundLayerAverage: Number(compoundLayerAverage.toFixed(3)),
                 cdeAverage: Number(cdeAverage.toFixed(3)),
                 cdtAverage: Number(cdtAverage.toFixed(3)),
-
                 MRAverage: Number(mrAverage.toFixed(3)),
                 compoundLayerMRAverage: Number(compoundLayerMrChartUCL.toFixed(3)),
                 cdeMRAverage: Number(cdeMrAverage.toFixed(3)),
@@ -592,6 +622,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     private specOrNull(v: number | null | undefined): number | null {
     return (typeof v === 'number' && Number.isFinite(v) && v !== 0) ? v : null;
     }
+
 
     private computeYAxisRange(params: {
     hardnessValues: number[];
@@ -773,59 +804,166 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     return Array.isArray(a) && a.length > 0;
     }
 
-private resolveSecondChartSelected(
-  filters: ChartDetailsFiltering | undefined,
-  cdeValues: number[] | undefined,
-  cdtValues: number[] | undefined,
-  compoundLayerValues: number[] | undefined,
-  cdeAverage: number | undefined,
-  cdtAverage: number | undefined,
-  compoundLayerAverage: number | undefined // <- was number[] in your snippet; should be number
-): SecondChartSelected {
-  // Normalize furnaceNo (O(1))
-  const f = filters?.furnaceNo;
-  const furnaceNum = typeof f === "number"
-    ? f
-    : Number.parseInt((f ?? "").toString().trim(), 10);
+    private resolveSecondChartSelected(
+    filters: ChartDetailsFiltering | undefined,
+    cdeValues: number[] | undefined,
+    cdtValues: number[] | undefined,
+    compoundLayerValues: number[] | undefined,
+    cdeAverage: number | undefined,
+    cdtAverage: number | undefined,
+    compoundLayerAverage: number | undefined // <- was number[] in your snippet; should be number
+    ): SecondChartSelected {
+    // Normalize furnaceNo (O(1))
+    const f = filters?.furnaceNo;
+    const furnaceNum = typeof f === "number"
+        ? f
+        : Number.parseInt((f ?? "").toString().trim(), 10);
 
-  // Availability flags (O(1))
-  const hasCDE = this.hasNumbers(cdeValues);
-  const hasCDT = this.hasNumbers(cdtValues);
-  const hasCL  = this.hasNumbers(compoundLayerValues);
+    // Availability flags (O(1))
+    const hasCDE = this.hasNumbers(cdeValues);
+    const hasCDT = this.hasNumbers(cdtValues);
+    const hasCL  = this.hasNumbers(compoundLayerValues);
 
-  const cdeOK = this.isFiniteNumber(cdeAverage);
-  const cdtOK = this.isFiniteNumber(cdtAverage);
+    const cdeOK = this.isFiniteNumber(cdeAverage);
+    const cdtOK = this.isFiniteNumber(cdtAverage);
 
-  // If either average is exactly zero → NA (your original intent)
+    // If either average is exactly zero → NA (your original intent)
 
-  // If we have CL and furnace is 1..3 → force COMPOUND_LAYER
-  // (avoid temporary array + includes)
-  if (hasCL && Number.isFinite(furnaceNum) && furnaceNum >= 1 && furnaceNum <= 3) {
-    return SecondChartSelected.COMPOUND_LAYER;
-  }
-
-    if ((cdeOK && cdeAverage === 0) && (cdtOK && cdtAverage === 0)) {
-        return SecondChartSelected.NA;
+    // If we have CL and furnace is 1..3 → force COMPOUND_LAYER
+    // (avoid temporary array + includes)
+    if (hasCL && Number.isFinite(furnaceNum) && furnaceNum >= 1 && furnaceNum <= 3) {
+        return SecondChartSelected.COMPOUND_LAYER;
     }
 
-  // If both CDE & CDT exist → compare averages (fallback CDE on tie/invalid)
-  if (hasCDE && hasCDT) {
-    if (cdeOK && cdtOK) {
-      return cdeAverage! >= cdtAverage! ? SecondChartSelected.CDE : SecondChartSelected.CDT;
+        if ((cdeOK && cdeAverage === 0) && (cdtOK && cdtAverage === 0)) {
+            return SecondChartSelected.NA;
+        }
+
+    // If both CDE & CDT exist → compare averages (fallback CDE on tie/invalid)
+    if (hasCDE && hasCDT) {
+        if (cdeOK && cdtOK) {
+        return cdeAverage! >= cdtAverage! ? SecondChartSelected.CDE : SecondChartSelected.CDT;
+        }
+        return SecondChartSelected.CDE;
     }
-    return SecondChartSelected.CDE;
-  }
 
-  // Single-side availability
-  if (hasCDE) return SecondChartSelected.CDE;
-  if (hasCDT) return SecondChartSelected.CDT;
+    // Single-side availability
+    if (hasCDE) return SecondChartSelected.CDE;
+    if (hasCDT) return SecondChartSelected.CDT;
 
-  // If neither CDE/CDT but CL exists, prefer CL (optional: also check finite avg)
-  if (hasCL && this.isFiniteNumber(compoundLayerAverage)) {
-    return SecondChartSelected.COMPOUND_LAYER;
-  }
+    // If neither CDE/CDT but CL exists, prefer CL (optional: also check finite avg)
+    if (hasCL && this.isFiniteNumber(compoundLayerAverage)) {
+        return SecondChartSelected.COMPOUND_LAYER;
+    }
 
-  // Final fallback
-  return SecondChartSelected.NA;
-}
+    // Final fallback
+    return SecondChartSelected.NA;
+    }
+
+    //
+    // 1) ช่วย: บวกเดือนแบบ calendar-aware และรักษาวันเดิม ถ้าเกินให้ snap ไปสิ้นเดือน
+    //
+    private addMonthsKeepDay(d: Date, months: number): Date {
+    const base = new Date(d.getTime());
+    const target = new Date(base.getFullYear(), base.getMonth() + months, 1, base.getHours(), base.getMinutes(), base.getSeconds(), base.getMilliseconds());
+    const day = base.getDate();
+    const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    target.setDate(Math.min(day, lastDay));
+    return target;
+    }
+
+    //
+    // 2) อนุมาน PeriodType จาก start/end แบบ calendar-aware
+    //    ใช้ midpoint ระหว่าง 1M–3M–6M–12M–24M นับจาก start เป็นเส้นแบ่ง
+    //
+    private inferPeriodTypeFromRange(start: Date, end: Date): PeriodType {
+    const diff = end.getTime() - start.getTime();
+    if (diff <= 0) throw new Error("endDate must be after startDate");
+
+    const d1  = this.addMonthsKeepDay(start, 1).getTime()  - start.getTime();
+    const d3  = this.addMonthsKeepDay(start, 3).getTime()  - start.getTime();
+    const d6  = this.addMonthsKeepDay(start, 6).getTime()  - start.getTime();
+    const d12 = this.addMonthsKeepDay(start, 12).getTime() - start.getTime();
+    const d24 = this.addMonthsKeepDay(start, 24).getTime() - start.getTime();
+
+    const b13    = (d1  + d3 ) / 2;   // เส้นแบ่ง 1M ↔ 3M
+    const b36    = (d3  + d6 ) / 2;   // เส้นแบ่ง 3M ↔ 6M
+    const b6_12  = (d6  + d12) / 2;   // เส้นแบ่ง 6M ↔ 12M
+    const b12_24 = (d12 + d24) / 2;   // เส้นแบ่ง 12M ↔ 24M
+
+    if (diff <= b13)    return PeriodType.ONE_MONTH;
+    if (diff <= b36)    return PeriodType.THREE_MONTHS;
+    if (diff <= b6_12)  return PeriodType.SIX_MONTHS;
+    if (diff <= b12_24) return PeriodType.ONE_YEAR;
+    return PeriodType.CUSTOM; // เกิน 1–2 ปีให้จัดเป็น Custom
+    }
+
+    private xAxisTickLabelMedium(
+    startISO: string | undefined,
+    endISO: string | undefined,
+    spots: number
+    ): Date[] {
+    if (!startISO || !endISO) throw new Error("startDate and endDate are required");
+
+    const startDate = new Date(startISO);
+    const endDate   = new Date(endISO);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) throw new Error("Invalid startDate or endDate");
+    if (endDate <= startDate) throw new Error("endDate must be after startDate");
+
+    // (a) infer period type จากช่วงจริง
+    const periodType = this.inferPeriodTypeFromRange(startDate, endDate);
+
+    // (b) base tick count ตาม period (1M=4, ที่เหลือ 6)
+    const baseTickCount = (periodType === PeriodType.ONE_MONTH) ? 4 : 6;
+
+    // (c) medium scaling: เพิ่มความหนาแน่นทุก ๆ 30 จุด
+    const factor = Math.max(1, Math.ceil(spots / 30)); // 132→5, 151→6, ...
+    let tickCount = Math.max(2, baseTickCount * factor);
+
+    // (d) กระจาย tick แบบรวมปลายทั้งสอง
+    const start = startDate.getTime();
+    const end   = endDate.getTime();
+    const stepMs = (end - start) / (tickCount - 1);
+
+    const ticks: Date[] = new Array(tickCount);
+    for (let i = 0; i < tickCount; i++) {
+        ticks[i] = new Date(start + i * stepMs);
+    }
+    return ticks;
+    }
+
+    private xAxisTickLabelLarge(
+    startISO: string | undefined,
+    endISO: string | undefined,
+    spots: number
+    ): Date[] {
+    if (!startISO || !endISO) throw new Error("startDate and endDate are required");
+
+    const startDate = new Date(startISO);
+    const endDate   = new Date(endISO);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) throw new Error("Invalid startDate or endDate");
+    if (endDate <= startDate) throw new Error("endDate must be after startDate");
+
+    // (a) infer period type จากช่วงจริง
+    const periodType = this.inferPeriodTypeFromRange(startDate, endDate);
+
+    // (b) base tick count ตาม period (1M=4, ที่เหลือ 6)
+    const baseTickCount = (periodType === PeriodType.ONE_MONTH) ? 4 : 6;
+
+    // (c) medium scaling: เพิ่มความหนาแน่นทุก ๆ 30 จุด
+    const factor = Math.max(1, Math.ceil(spots / 60)); // 132→5, 151→6, ...
+    let tickCount = Math.max(2, baseTickCount * factor);
+
+    // (d) กระจาย tick แบบรวมปลายทั้งสอง
+    const start = startDate.getTime();
+    const end   = endDate.getTime();
+    const stepMs = (end - start) / (tickCount - 1);
+
+    const ticks: Date[] = new Array(tickCount);
+    for (let i = 0; i < tickCount; i++) {
+        ticks[i] = new Date(start + i * stepMs);
+    }
+    return ticks;
+    }
+
 }

@@ -22,13 +22,6 @@ export class TimeConverter {
           endDate: now
         };
 
-      // case PeriodType.ONE_MONTH:
-      //   const days = pastDays || 30;
-      //   return {
-      //     startDate: new Date(now.getTime() - (days * 24 * 60 * 60 * 1000)),
-      //     endDate: now
-      //   };
-
       case PeriodType.THREE_MONTHS:
         return {
           startDate: new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()),

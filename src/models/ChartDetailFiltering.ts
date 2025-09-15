@@ -66,6 +66,10 @@ export interface SigmaLevels {
 export interface MRChartResult {
   numberOfSpots: number;
   secondChartSelected?: SecondChartSelected;
+  periodType: String;
+  xTick: number;
+  xAxisMediumLabel: Date[];
+  xAxisLargeLabel: Date[];
 
   // isViolatedR1BeyondLCL: boolean;
   // isViolatedR1BeyondUCL: boolean;
