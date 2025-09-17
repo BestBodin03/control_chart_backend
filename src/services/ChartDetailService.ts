@@ -1,6 +1,6 @@
 import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
 import { ChartDetailsFiltering, ChartPoints, ControlLimits, DataPoint, 
-    FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/chartDetailFiltering";
+    FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/ChartDetailFiltering";
 import { Router, Request, Response } from "express";
 import { chartDetailController, customerProductService } from "../utils/serviceLocator";
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
@@ -263,11 +263,15 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             }
             
             const hardnessValues = validHardnessData.map(item => item.hardness).reverse();
+            const hardnessDates = validHardnessData.map(item => new Date(item.date)).reverse();
             const compoundLayerValues = validCompoundLayerData.map(item => item.compoundLayer).reverse();
+            const compoundLayerDates = validCompoundLayerData.map(item => new Date(item.date)).reverse();
             // console.log('Hardness values:', hardnessValues.length);
             // console.log('Hardness values:', hardnessValues);
             const cdeValues = validCdeData.map(item => item.cde).reverse();
+            const cdeDates = validCdeData.map(item => new Date(item.date)).reverse();
             const cdtValues = validCdtData.map(item => item.cdt).reverse();
+            const cdtDates = validCdtData.map(item => new Date(item.date)).reverse();
 
             
             const average = parseFloat((hardnessValues.reduce((sum, value) => sum + value, 0) / hardnessValues.length).toFixed(3));
@@ -433,10 +437,10 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             };
 
             // 2) ได้ DataPoint[] ของแต่ละซีรีส์ (เช็ค R1 + R3)
-            const hardnessPoints = this.buildControlChartPoints(hardnessValues, hardnessCtrl, hardnessSpec, 6);
-            const compoundPoints = this.buildControlChartPoints(compoundLayerValues, compoundCtrl, compoundSpec, 6);
-            const cdePoints      = this.buildControlChartPoints(cdeValues, cdeCtrl, cdeSpec, 6);
-            const cdtPoints      = this.buildControlChartPoints(cdtValues, cdtCtrl, cdtSpec, 6);
+            const hardnessPoints = this.buildControlChartPoints(hardnessValues, hardnessDates, hardnessCtrl, hardnessSpec, 6);
+            const compoundPoints = this.buildControlChartPoints(compoundLayerValues, compoundLayerDates, compoundCtrl, compoundSpec, 6);
+            const cdePoints      = this.buildControlChartPoints(cdeValues, cdeDates, cdeCtrl, cdeSpec, 6);
+            const cdtPoints      = this.buildControlChartPoints(cdtValues, cdtDates, cdtCtrl, cdtSpec, 6);
 
             // 3) bundle เป็น ChartPoints
             const controlChartSpotsChecked: ChartPoints = {
@@ -481,17 +485,62 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 compoundLayerAverage
             );
 
+const allViolations = {
+  surfaceHardness: this.summarizeViolations(controlChartSpotsChecked.surfaceHardness),
+  compoundLayer:   this.summarizeViolations(controlChartSpotsChecked.compoundLayer),
+  cde:             this.summarizeViolations(controlChartSpotsChecked.cde),
+  cdt:             this.summarizeViolations(controlChartSpotsChecked.cdt),
+};
+
+console.log("Violations Summary:", allViolations);
+
+// ถ้าอยากเจาะพิมพ์เฉพาะค่า controlLimitViolations
+console.log("Surface Hardness CL Violations:", allViolations.surfaceHardness.controlLimitViolations);
+console.log("Compound Layer CL Violations:", allViolations.compoundLayer.controlLimitViolations);
+console.log("CDE CL Violations:", allViolations.cde.controlLimitViolations);
+console.log("CDT CL Violations:", allViolations.cdt.controlLimitViolations);
+
+
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
+
+                surfaceHardnessViolations: {
+                    beyondControlLimit: allViolations.surfaceHardness.controlLimitViolations,
+                    beyondSpecLimit: allViolations.surfaceHardness.specControlViolations,
+                    trend: allViolations.surfaceHardness.trendViolations,
+                },
+
+                compoundLayerViolations: {
+                    beyondControlLimit: allViolations.compoundLayer.controlLimitViolations,
+                    beyondSpecLimit: allViolations.compoundLayer.specControlViolations,
+                    trend: allViolations.compoundLayer.trendViolations,
+                },
+
+                cdeViolations: {
+                    beyondControlLimit: allViolations.cde.controlLimitViolations,
+                    beyondSpecLimit: allViolations.cde.specControlViolations,
+                    trend: allViolations.cde.trendViolations,
+                },
+
+                cdtViolations: {
+                    beyondControlLimit: allViolations.cdt.controlLimitViolations,
+                    beyondSpecLimit: allViolations.cdt.specControlViolations,
+                    trend: allViolations.cdt.trendViolations,
+                },
+
                 secondChartSelected: secondChartSelected,
+
                 periodType: periodTypeName,
                 xTick: xAxisTick,
                 xAxisMediumLabel: xAxisForMedium,
                 xAxisLargeLabel: xAxisForLarge,
+                yAxisRange: yAxisRange,
+
                 average: Number(average.toFixed(3)),
                 compoundLayerAverage: Number(compoundLayerAverage.toFixed(3)),
                 cdeAverage: Number(cdeAverage.toFixed(3)),
                 cdtAverage: Number(cdtAverage.toFixed(3)),
+
                 MRAverage: Number(mrAverage.toFixed(3)),
                 compoundLayerMRAverage: Number(compoundLayerMrChartUCL.toFixed(3)),
                 cdeMRAverage: Number(cdeMrAverage.toFixed(3)),
@@ -580,17 +629,19 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 compoundLayerChartSpots: compoundLayerValues,
                 cdeChartSpots: cdeValues,
                 cdtChartSpots: cdtValues,
+
                 controlChartSpots: controlChartSpotsChecked,
+
                 mrChartSpots: movingRanges,
                 compoundLayerMrChartSpots: compoundLayerMovingRanges,
                 cdeMrChartSpots: cdeMovingRanges,
                 cdtMrChartSpots: cdtMovingRanges,
+
                 specAttribute,
-                yAxisRange: yAxisRange
             };
            
-            console.log('I-MR Chart Calculation Results:', result);
-            console.log('hardness value:', hardnessValues);
+            // console.log('I-MR Chart Calculation Results:', result);
+            // console.log('hardness value:', hardnessValues);
             return result;
             
         } catch (error) {
@@ -747,17 +798,35 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     limits: { CL: number; UCL: number; LCL: number },
     specs?: Specs
     ) {
-    const beyondUCL = values.map(v => v > limits.UCL);
-    const beyondLCL = values.map(v => v < limits.LCL);
-    const beyondUSL = values.map(v => (specs?.USL == null ? false : v > specs.USL));
-    const beyondLSL = values.map(v => (specs?.LSL == null ? false : v < specs.LSL));
+    const beyondUCL =
+        limits.UCL === 0
+        ? values.map(() => false)
+        : values.map(v => v > limits.UCL);
+
+    const beyondLCL =
+        limits.LCL === 0
+        ? values.map(() => false)
+        : values.map(v => v < limits.LCL);
+
+    const beyondUSL =
+        specs?.USL == null || specs.USL === 0
+        ? values.map(() => false)
+        : values.map(v => specs.USL !== undefined && v > specs.USL);
+
+    const beyondLSL =
+        specs?.LSL == null || specs.LSL === 0
+        ? values.map(() => false)
+        : values.map(v => specs.LSL !== undefined && v < specs.LSL);
+
     return { beyondUCL, beyondLCL, beyondUSL, beyondLSL };
     }
+
+
 
     private nelsonRule3Checker(values: number[], runLength = 6): boolean[] {
     const n = values.length;
     const flags = new Array<boolean>(n).fill(false);
-    if (n < runLength) return flags;
+    if (n <= runLength) return flags;
 
     let inc = 0;
     let dec = 0;
@@ -777,8 +846,48 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     return flags;
     }
 
+    private summarizeViolations(points: DataPoint[]) {
+        let controlLimitViolations = 0;
+        let specControlViolations  = 0;
+        let trendViolations        = 0;
+
+        for (const p of points) {
+            if (p.isViolatedR1BeyondUCL) controlLimitViolations++;
+            if (p.isViolatedR1BeyondLCL) controlLimitViolations++;
+            if (p.isViolatedR1BeyondUSL) specControlViolations++;
+            if (p.isViolatedR1BeyondLSL) specControlViolations++;
+            if (p.isViolatedR3)          trendViolations++;
+        }
+
+        return {
+            controlLimitViolations,
+            specControlViolations,
+            trendViolations
+        };
+        }
+
+
+    // นับจำนวน flag ที่เป็น true ภายใน DataPoint
+    countPointViolations(p: DataPoint): number {
+    return (
+        (p.isViolatedR1BeyondUCL ? 1 : 0) +
+        (p.isViolatedR1BeyondLCL ? 1 : 0) +
+        (p.isViolatedR1BeyondUSL ? 1 : 0) +
+        (p.isViolatedR1BeyondLSL ? 1 : 0) +
+        (p.isViolatedR3 ? 1 : 0)
+    );
+    }
+
+    // ✅ ใช้สำหรับอาร์เรย์ของ DataPoint เดียว เช่น surfaceHardness
+    private ruleViolatedCount(arr: DataPoint[]): number {
+    if (!Array.isArray(arr) || arr.length === 0) return 0;
+    return arr.reduce((sum, point) => sum + this.countPointViolations(point), 0);
+    }
+
+
     private buildControlChartPoints(
     values: number[],
+    date: Date[],
     limits: { CL: number; UCL: number; LCL: number },
     specs?: Specs,
     r3RunLength = 6
@@ -786,14 +895,15 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
     const r1 = this.nelsonRule1Checker(values, limits, specs);
     const r3 = this.nelsonRule3Checker(values, r3RunLength);
 
-    return values.map((v, i) => ({
-        value: v,
-        isViolatedR1BeyondLCL: r1.beyondLCL[i],
-        isViolatedR1BeyondUCL: r1.beyondUCL[i],
-        isViolatedR1BeyondLSL: r1.beyondLSL[i],
-        isViolatedR1BeyondUSL: r1.beyondUSL[i],
-        isViolatedR3: r3[i],
-    }));
+        return values.map((v, i) => ({
+            value: v,
+            collectedDate: date[i],
+            isViolatedR1BeyondLCL: r1.beyondLCL[i],
+            isViolatedR1BeyondUCL: r1.beyondUCL[i],
+            isViolatedR1BeyondLSL: r1.beyondLSL[i],
+            isViolatedR1BeyondUSL: r1.beyondUSL[i],
+            isViolatedR3: r3[i],
+        }));
     }
 
     private isFiniteNumber(v: unknown): v is number {

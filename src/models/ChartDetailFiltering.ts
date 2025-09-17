@@ -65,6 +65,35 @@ export interface SigmaLevels {
 
 export interface MRChartResult {
   numberOfSpots: number;
+
+  surfaceHardnessViolations: {
+    beyondControlLimit: number;
+    beyondSpecLimit: number;
+    trend: number;
+
+  }
+
+  compoundLayerViolations: {
+    beyondControlLimit: number;
+    beyondSpecLimit: number;
+    trend: number;
+
+  }
+
+  cdeViolations: {
+    beyondControlLimit: number;
+    beyondSpecLimit: number;
+    trend: number;
+
+  }
+
+  cdtViolations: {
+    beyondControlLimit: number;
+    beyondSpecLimit: number;
+    trend: number;
+
+  }
+
   secondChartSelected?: SecondChartSelected;
   periodType: String;
   xTick: number;
