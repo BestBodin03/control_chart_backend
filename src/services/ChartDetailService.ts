@@ -11,6 +11,7 @@ import { R3Result, TrendSegment } from "../models/types/nelsonRule3";
 import { R1Result } from "../models/types/nelsonRule1";
 import { SecondChartSelected, Specs } from "../models/types/controlChart";
 import { PeriodType } from "../models/enums/periodType";
+import { furnaceMaterialCacheService } from "./furnaceMaterialCacheService";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {
@@ -494,11 +495,14 @@ const allViolations = {
 
 console.log("Violations Summary:", allViolations);
 
+const cache = furnaceMaterialCacheService.getAll();
+
 // ถ้าอยากเจาะพิมพ์เฉพาะค่า controlLimitViolations
 console.log("Surface Hardness CL Violations:", allViolations.surfaceHardness.controlLimitViolations);
 console.log("Compound Layer CL Violations:", allViolations.compoundLayer.controlLimitViolations);
 console.log("CDE CL Violations:", allViolations.cde.controlLimitViolations);
 console.log("CDT CL Violations:", allViolations.cdt.controlLimitViolations);
+console.log(cache);
 
 
             const result: MRChartResult = {

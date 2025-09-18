@@ -1,6 +1,7 @@
 import { DeleteReport } from "../models/deleteType";
 import { FurnaceModel } from "../models/entities/furnace";
 import { fromEntity, toEntity } from "../models/mapper/settingMapper";
+import { nelsonRule } from "../models/nelsonRuleConst";
 import { CreateSettingProfileRequest, settingDTO, SettingDTO, SettingEntity, UpdateSettingProfileRequest } from "../models/validations/settingValidate";
 import { assertAllowedFurnaceCp } from "../utils/furnaceAndCpChecker";
 import { cpRepository, furnaceRepository, settingRepository } from "../utils/serviceLocator";
@@ -24,11 +25,8 @@ export class SettingService {
   async addSettingProfile(req: CreateSettingProfileRequest): Promise<SettingDTO> {
     try {
       await assertAllowedFurnaceCp(req, furnaceRepository);
-      // if (req.displayType != null) {
-      //   console.log('DO 2.1');
-      //   await this.assertSingleActiveSetting();
-      //   console.log('DO 2');
-      // }
+
+      // handle specificSetting
       const specificSetting = await Promise.all(
         req.specificSetting.map(async s => {
           const { startDate, endDate } = TimeConverter.toDateRange(
@@ -40,9 +38,23 @@ export class SettingService {
           return { ...s, period: { ...s.period, startDate, endDate } };
         })
       );
-      const saved = await settingRepository.create(toEntity({ ...req, specificSetting }));
+
+
+      // create entity
+      const saved = await settingRepository.create(
+        toEntity({
+          ...req,
+          specificSetting,
+          generalSetting: {
+            ...req.generalSetting,
+            nelsonRule, // 👈 override with forced rules
+          },
+        })
+      );
+
       return fromEntity(saved);
     } catch (e) {
+      console.error(e);
       throw new Error('Can not create a new setting profile');
     }
   }
