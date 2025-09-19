@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-// import { ChartDetailService } from '../services/chartDetailService';
 import { MasterDataService } from '../services/masterDataService';
-import { any } from 'zod';
 import { furnaceCacheController } from './furnaceCacheController';
 import { furnaceMaterialCacheService } from '../services/furnaceMaterialCacheService';
 import { MasterApiRequest } from '../models/masterApiResponse';
@@ -53,7 +51,6 @@ export class MasterDataController {
         STARTday: req.body.STARTday || "01",
         ...endDates
       };
-
       const result = await this.masterDataService.processFromAPI(masterReq);
       await furnaceMaterialCacheService.refresh();
       
@@ -68,7 +65,8 @@ export class MasterDataController {
         data: result
       });
       
-    } catch (e: any) {
+    } catch 
+    (e: any) {
       res.json({
         status: "error",
         statusCode: res.statusCode,

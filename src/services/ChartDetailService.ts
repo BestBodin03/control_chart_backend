@@ -1,6 +1,4 @@
 import { ChartDetailData, ChartDetail } from "../models/entities/chartDetail";
-import { ChartDetailsFiltering, ChartPoints, ControlLimits, DataPoint, 
-    FilteredResult, MRChartResult, toSpecAttribute, YAxisRange } from "../models/ChartDetailFiltering";
 import { Router, Request, Response } from "express";
 import { chartDetailController, customerProductService } from "../utils/serviceLocator";
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
@@ -12,6 +10,8 @@ import { R1Result } from "../models/types/nelsonRule1";
 import { SecondChartSelected, Specs } from "../models/types/controlChart";
 import { PeriodType } from "../models/enums/periodType";
 import { furnaceMaterialCacheService } from "./furnaceMaterialCacheService";
+import { ChartDetailsFiltering, FilteredResult, MRChartResult, 
+    toSpecAttribute, ChartPoints, YAxisRange, DataPoint } from "../models/chartDetailFiltering";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {

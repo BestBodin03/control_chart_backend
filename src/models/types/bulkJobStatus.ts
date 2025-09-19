@@ -1,0 +1,1 @@
+export type BulkJobStatus = 'idle' | 'running' | 'done' | 'error' | 'cancelled';
