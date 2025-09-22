@@ -51,6 +51,8 @@ export class MasterDataServiceHelper {
     name: targetName,
     BTW_LOW: specification.BTW_LOW,
     BTW_HI: specification.BTW_HI,
+    HIM_L: specification.HIM_L,
+    LOL_H: specification.LOL_H,
     TARGET: specification.TARGET,
     condition: specification.condition
     };
@@ -64,8 +66,8 @@ export class MasterDataServiceHelper {
     return {
         itemCode: btwData.itemCode,
         name: btwData.name,
-        upper_spec: btwData.BTW_HI || 0,
-        lower_spec: btwData.BTW_LOW || 0,
+        upper_spec: btwData.BTW_HI || btwData.LOL_H || 0,
+        lower_spec: btwData.BTW_LOW || btwData.HIM_L || 0,
         target: btwData.TARGET || 0,
         condition: btwData.condition
     };
