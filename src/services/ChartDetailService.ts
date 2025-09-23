@@ -12,6 +12,8 @@ import { PeriodType } from "../models/enums/periodType";
 import { furnaceMaterialCacheService } from "./furnaceMaterialCacheService";
 import { ChartDetailsFiltering, FilteredResult, MRChartResult, 
     toSpecAttribute, ChartPoints, YAxisRange, DataPoint } from "../models/chartDetailFiltering";
+import { all } from "axios";
+import { toDTO, ChartDetailDTO } from "../models/types/chartDetailDto";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {
@@ -72,7 +74,7 @@ export class ChartDetailService {
     }
 
     // ✅ Method สำหรับ Controller เรียกใช้
-    async getFilteredData(req: Request): Promise<FilteredResult<ChartDetail>> {
+    async getFilteredData(req: Request): Promise<FilteredResult<ChartDetailDTO>> {
         try {
             const filters = this.parseFiltersFromRequest(req);
             return await this.handleDynamicFiltering(filters);
@@ -82,50 +84,23 @@ export class ChartDetailService {
         }
     }
 
-    async handleDynamicFiltering(filters?: ChartDetailsFiltering): Promise<FilteredResult<ChartDetail> & { 
-        summary: Array<{ furnaceNo: number; matNo: string; partName: string; count: number }> 
-    }> {
-        const allData = await this.chartDetailRepository.findAll();
-        
-        if (!filters) {
-        const summary = Object.values(
-        allData.reduce((acc, item) => {
-            const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
-            acc[key] = acc[key]
-            ? { ...acc[key], count: acc[key].count + 1 }
-            : {
-                furnaceNo: item.chartGeneralDetail.furnaceNo,
-                matNo: item.CPNo,
-                partName: item.chartGeneralDetail.partName,
-                count: 1
-                };
-            return acc;
-        }, {} as Record<string, any>)
-        )
+async handleDynamicFiltering(
+  filters?: ChartDetailsFiltering
+): Promise<FilteredResult<ChartDetailDTO> & {
+  summary: Array<{ furnaceNo: number; matNo: string; partName: string; count: number }>;
+}> {
+  // 1) get docs (mongoose documents)
+  const allDocs = await this.chartDetailRepository.findAll(); // ChartDetail[]
 
-            summary.sort((a: any, b:any) => b.count - a.count)
+  // helper
+  const num = (v?: number | null) => (v ?? 0);
 
-            // ).sort((a: any, b: any) => a.furnaceNo - b.furnaceNo || a.matNo.localeCompare(b.matNo));
-            
-            return {
-                data: allData,
-                total: allData.length,
-                filters: filters || {} as ChartDetailsFiltering,
-                summary
-            };
-        }
-
-        let filteredData = [...allData];
-
-        // Apply filters one by one
-        Object.entries(filters).forEach(([key, value]) => {
-            if (this.validateApplyFilter(key, value)) {
-                filteredData = this.applyFilter(filteredData, key, value);
-            }
-        });
+  // 2) no filters → just return all as DTO + summary
+  if (!filters) {
+    const dtoAll: ChartDetailDTO[] = allDocs.map(toDTO);
 
         const summary = Object.values(
-            filteredData.reduce((acc, item) => {
+            dtoAll.reduce((acc, item) => {
                 const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
                 acc[key] = acc[key] ? 
                     { ...acc[key], count: acc[key].count + 1 } : 
@@ -134,14 +109,69 @@ export class ChartDetailService {
                 return acc;
             }, {} as Record<string, any>)
         ).sort((a: any, b: any) => b.count - a.count);
-        
-        return {
-            data: filteredData.reverse(),
-            total: filteredData.length,
-            filters,
-            summary
-        };
+
+    return {
+      data: [...dtoAll].reverse(),
+      total: dtoAll.length,
+      filters: (filters ?? {}) as ChartDetailsFiltering,
+      summary,
+    };
+  }
+
+  // 3) apply filters on documents
+  let filteredDocs = [...allDocs];
+  Object.entries(filters).forEach(([key, value]) => {
+    if (this.validateApplyFilter(key, value)) {
+      filteredDocs = this.applyFilter(filteredDocs, key, value);
     }
+  });
+
+  // 4) compute averages on the filtered set (including zeros)
+  const surfaceHardnessList = filteredDocs.map(d => d.machanicDetail.surfaceHardnessMean);
+  const surfaceHardnessAvg =
+    surfaceHardnessList.reduce((acc, v) => acc + num(v), 0) / (surfaceHardnessList.length || 1);
+
+  const compoundLayerList = filteredDocs.map(d => d.machanicDetail.compoundLayer);
+  const compoundLayerAvg =
+    compoundLayerList.reduce((acc, v) => acc + num(v), 0) / (compoundLayerList.length || 1);
+
+  const cdeList = filteredDocs.map(d => d.machanicDetail.CDE?.CDEX);
+  const cdeAvg =
+    cdeList.reduce((acc, v) => acc + num(v), 0) / (cdeList.length || 1);
+
+  const cdtList = filteredDocs.map(d => d.machanicDetail.CDE?.CDTX);
+  const cdtAvg =
+    cdtList.reduce((acc, v) => acc + num(v), 0) / (cdtList.length || 1);
+
+  // 5) DROP abnormal index (item) when its value is 0 while its avg > 0
+  const shouldDrop = (d: ChartDetail) =>
+    (surfaceHardnessAvg > 0 && num(d.machanicDetail.surfaceHardnessMean) === 0) ||
+    (compoundLayerAvg  > 0 && num(d.machanicDetail.compoundLayer)         === 0) ||
+    (cdeAvg            > 0 && num(d.machanicDetail.CDE?.CDEX)              === 0) ||
+    (cdtAvg            > 0 && num(d.machanicDetail.CDE?.CDTX)              === 0);
+
+  const keptDocs = filteredDocs.filter(d => !shouldDrop(d));
+  const filteredDataDTO: ChartDetailDTO[] = keptDocs.map(toDTO);
+
+        const summary = Object.values(
+            filteredDataDTO.reduce((acc, item) => {
+                const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
+                acc[key] = acc[key] ? 
+                    { ...acc[key], count: acc[key].count + 1 } : 
+                    { furnaceNo: item.chartGeneralDetail.furnaceNo,
+                     matNo: item.CPNo, partName: item.chartGeneralDetail.partName, count: 1 };
+                return acc;
+            }, {} as Record<string, any>)
+        ).sort((a: any, b: any) => b.count - a.count);
+
+  return {
+    data: [...filteredDataDTO].reverse(),
+    total: filteredDataDTO.length,
+    filters,
+    summary,
+  };
+}
+
 
 private validateApplyFilter(key: string, value: any): boolean {
     if (value === undefined || value === null || value === '') {
@@ -194,7 +224,9 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 const endDate = new Date(period.endDate);
                 
                 // ตรวจสอบว่า date ถูกต้อง
-                if (isNaN(itemDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                if (isNaN(itemDate.getTime()) || 
+                isNaN(startDate.getTime()) || 
+                isNaN(endDate.getTime())) {
                     return false;
                 }
                 
@@ -265,27 +297,64 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 throw new Error('ไม่สามารถแสดงแผนภูมิควบคุมได้ เนื่องจากข้อมูลน้อยกว่า 5 รายการ');
             }
             
-            const hardnessValues = validHardnessData.map(item => item.hardness);
-            const hardnessDates = validHardnessData.map(item => new Date(item.date));
-            const compoundLayerValues = validCompoundLayerData.map(item => item.compoundLayer);
-            const compoundLayerDates = validCompoundLayerData.map(item => new Date(item.date));
-            // console.log('Hardness values:', hardnessValues.length);
-            // console.log('Hardness values:', hardnessValues);
-            const cdeValues = validCdeData.map(item => item.cde)
-            const cdeDates = validCdeData.map(item => new Date(item.date));
-            const cdtValues = validCdtData.map(item => item.cdt).reverse();
-            const cdtDates = validCdtData.map(item => new Date(item.date));
+// ensure number[]
+const hardnessValues: number[] = validHardnessData
+  .map(item => item.hardness)
+  .filter((v): v is number => typeof v === 'number' && !isNaN(v));
 
-            console.log(compoundLayerValues);
+const hardnessDates: Date[] = validHardnessData.map(item =>
+  new Date(item.date)
+);
 
-            const average = parseFloat((hardnessValues.reduce((sum, value) => sum + value, 0) / hardnessValues.length).toFixed(3));
-            // console.log('Average:', average);
-            const compoundLayerAverage = parseFloat((compoundLayerValues.reduce((sum, value) =>
-                 sum + value, 0) / compoundLayerValues.length).toFixed(3));
-            const cdeAverage = parseFloat((cdeValues.reduce((sum, value) =>
-                 sum + value, 0) / cdeValues.length).toFixed(3));
-            const cdtAverage = parseFloat((cdtValues.reduce((sum, value) =>
-                 sum + value, 0) / cdtValues.length).toFixed(3));
+const compoundLayerValues: number[] = validCompoundLayerData
+  .map(item => item.compoundLayer)
+  .filter((v): v is number => typeof v === 'number' && !isNaN(v));
+
+const compoundLayerDates: Date[] = validCompoundLayerData.map(item =>
+  new Date(item.date)
+);
+
+const cdeValues: number[] = validCdeData
+  .map(item => item.cde)
+  .filter((v): v is number => typeof v === 'number' && !isNaN(v));
+
+const cdeDates: Date[] = validCdeData.map(item =>
+  new Date(item.date)
+);
+
+const cdtValues: number[] = validCdtData
+  .map(item => item.cdt)
+  .filter((v): v is number => typeof v === 'number' && !isNaN(v));
+
+const cdtDates: Date[] = validCdtData.map(item =>
+  new Date(item.date)
+);
+
+// averages
+const average = hardnessValues.length > 0
+  ? parseFloat(
+      (hardnessValues.reduce((sum, v) => sum + v, 0) / hardnessValues.length).toFixed(3)
+    )
+  : 0;
+
+const compoundLayerAverage = compoundLayerValues.length > 0
+  ? parseFloat(
+      (compoundLayerValues.reduce((sum, v) => sum + v, 0) / compoundLayerValues.length).toFixed(3)
+    )
+  : 0;
+
+const cdeAverage = cdeValues.length > 0
+  ? parseFloat(
+      (cdeValues.reduce((sum, v) => sum + v, 0) / cdeValues.length).toFixed(3)
+    )
+  : 0;
+
+const cdtAverage = cdtValues.length > 0
+  ? parseFloat(
+      (cdtValues.reduce((sum, v) => sum + v, 0) / cdtValues.length).toFixed(3)
+    )
+  : 0;
+
 
             const movingRanges = hardnessValues
                 .slice(1)
