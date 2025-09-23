@@ -223,7 +223,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             const filters = this.parseFiltersFromRequest(req);
             const dataForChart = await this.handleDynamicFiltering(filters);
             // console.log(dataForChart.total);
-            
+
             const dataWithFurnace = dataForChart.data.map(item => ({
                 furnaceNo: item.chartGeneralDetail?.furnaceNo,
                 hardness: item.machanicDetail?.surfaceHardnessMean,
@@ -231,9 +231,11 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 cde: item.machanicDetail?.CDE.CDEX,
                 cdt: item.machanicDetail?.CDE.CDTX,
                 date: item.chartGeneralDetail?.collectedDate
-            }));
+            })); //CORRECT
 
-            // console.log(dataForChart.total);
+            // console.log('The Data for Calculate', dataForChart.data);
+
+            // console.log(dataWithFurnace);
 
             const validHardnessData = dataWithFurnace.filter(item => 
                 item.hardness !== undefined && 
@@ -263,18 +265,19 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 throw new Error('ไม่สามารถแสดงแผนภูมิควบคุมได้ เนื่องจากข้อมูลน้อยกว่า 5 รายการ');
             }
             
-            const hardnessValues = validHardnessData.map(item => item.hardness).reverse();
-            const hardnessDates = validHardnessData.map(item => new Date(item.date)).reverse();
-            const compoundLayerValues = validCompoundLayerData.map(item => item.compoundLayer).reverse();
-            const compoundLayerDates = validCompoundLayerData.map(item => new Date(item.date)).reverse();
+            const hardnessValues = validHardnessData.map(item => item.hardness);
+            const hardnessDates = validHardnessData.map(item => new Date(item.date));
+            const compoundLayerValues = validCompoundLayerData.map(item => item.compoundLayer);
+            const compoundLayerDates = validCompoundLayerData.map(item => new Date(item.date));
             // console.log('Hardness values:', hardnessValues.length);
             // console.log('Hardness values:', hardnessValues);
-            const cdeValues = validCdeData.map(item => item.cde).reverse();
-            const cdeDates = validCdeData.map(item => new Date(item.date)).reverse();
+            const cdeValues = validCdeData.map(item => item.cde)
+            const cdeDates = validCdeData.map(item => new Date(item.date));
             const cdtValues = validCdtData.map(item => item.cdt).reverse();
-            const cdtDates = validCdtData.map(item => new Date(item.date)).reverse();
+            const cdtDates = validCdtData.map(item => new Date(item.date));
 
-            
+            console.log(compoundLayerValues);
+
             const average = parseFloat((hardnessValues.reduce((sum, value) => sum + value, 0) / hardnessValues.length).toFixed(3));
             // console.log('Average:', average);
             const compoundLayerAverage = parseFloat((compoundLayerValues.reduce((sum, value) =>
@@ -463,7 +466,7 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             dataForChart.total
             );
 
-            console.log(xAxisForMedium);
+            // console.log(xAxisForMedium);
 
             if (!filters?.period.startDate || !filters?.period.endDate) {
             throw new Error("Start and end date are required");
@@ -486,14 +489,14 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 compoundLayerAverage
             );
 
-const allViolations = {
-  surfaceHardness: this.summarizeViolations(controlChartSpotsChecked.surfaceHardness),
-  compoundLayer:   this.summarizeViolations(controlChartSpotsChecked.compoundLayer),
-  cde:             this.summarizeViolations(controlChartSpotsChecked.cde),
-  cdt:             this.summarizeViolations(controlChartSpotsChecked.cdt),
-};
+            const allViolations = {
+            surfaceHardness: this.summarizeViolations(controlChartSpotsChecked.surfaceHardness),
+            compoundLayer:   this.summarizeViolations(controlChartSpotsChecked.compoundLayer),
+            cde:             this.summarizeViolations(controlChartSpotsChecked.cde),
+            cdt:             this.summarizeViolations(controlChartSpotsChecked.cdt),
+            };
 
-console.log("Violations Summary:", allViolations);
+// console.log("Violations Summary:", allViolations);
 
 const cache = furnaceMaterialCacheService.getAll();
 
