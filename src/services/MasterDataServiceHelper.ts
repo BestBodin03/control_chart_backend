@@ -2,18 +2,19 @@
 export class MasterDataServiceHelper {
  
     createInvertedIndex(itemobject: Record<string, string>) {
-    const invertedIndex: Record<string, string> = {};
-    
-    if (!itemobject || typeof itemobject !== 'object') {
-        // console.warn('itemobject is null, undefined, or not an object:', itemobject);
-        return {};
-    }
-    
-    for (const [itemCode, name] of Object.entries(itemobject)) {
-        invertedIndex[name] = itemCode;
-    }
-    
-    return invertedIndex;
+      const invertedIndex: Record<string, string> = {};
+      
+      if (!itemobject || typeof itemobject !== 'object') {
+          // console.warn('itemobject is null, undefined, or not an object:', itemobject);
+          return {};
+      }
+      
+      for (const [itemCode, name] of Object.entries(itemobject)) {
+          invertedIndex[name] = itemCode;
+      }
+      console.log(invertedIndex);
+      
+      return invertedIndex;
     }
 
     getBTWValuesOptimized(
@@ -37,25 +38,26 @@ export class MasterDataServiceHelper {
     const surfaceHardnessCode = invertedIndex["Surface Hardness"];
     const surfaceHardnessData = data[surfaceHardnessCode];
     
-    if (surfaceHardnessData?.SPECIFICATIONve?.[itemCode]) {
-        specification = surfaceHardnessData.SPECIFICATIONve[itemCode];
-    }
+      if (surfaceHardnessData?.SPECIFICATIONve?.[itemCode]) {
+          specification = surfaceHardnessData.SPECIFICATIONve[itemCode];
+      }
     }
 
     if (!specification) {
-    return null;
+      return null;
     }
 
     return {
-    itemCode: itemCode,
-    name: targetName,
-    BTW_LOW: specification.BTW_LOW,
-    BTW_HI: specification.BTW_HI,
-    HIM_L: specification.HIM_L,
-    LOL_H: specification.LOL_H,
-    TARGET: specification.TARGET,
-    condition: specification.condition
+      itemCode,
+      name: targetName,
+      BTW_LOW: this.toNum0(specification.BTW_LOW),
+      BTW_HI:  this.toNum0(specification.BTW_HI),
+      HIM_L:   this.toNum0(specification.HIM_L),
+      LOL_H:   this.toNum0(specification.LOL_H),
+      TARGET:  this.toNum0(specification.TARGET),
+      condition: specification.condition ?? null,
     };
+
     }
 
     transformToSpecFormat(btwData: any) {
@@ -299,7 +301,16 @@ getAttributeMeanData(
     );
 }
 
-
+  private toNum0(v: any): number {
+    if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+    if (typeof v === 'string') {
+      const s = v.trim();
+      if (s === '' || s === '-') return 0;
+      const n = Number(s.replace(/,/g, '')); // กันกรณีมีคอมมา
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  }
 
   createLookupMap<T extends { name: string }>(results: (T | null)[]): Record<string, T> {
   return results

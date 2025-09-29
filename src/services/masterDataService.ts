@@ -169,7 +169,7 @@ export class MasterDataService {
       }
 
       const data: any = await response.json();
-      const targetNames = ["Surface Hardness", "Total Case Depth (Core +50)", "Hardness Case Depth (CDE@ 513 Hmv)", "Compound Layer"];
+      const targetNames = ["Surface Hardness", "Total Case Depth (Core +50)", "Hardness Case Depth (CDE@ 513 Hmv)", "Compound Layer","Hardness Case Depth (CDE@ 550 Hmv)"];
 
       const mappedData: MasterApiResponse[] = data.map((record: any, index: number) => {
         const fgCode = record.FG_CHARG || '';
@@ -185,6 +185,7 @@ export class MasterDataService {
         console.log(`\n📊 Record ${index} results:`);
         console.log('📊 Spec results found:', recordSpecResults.length);
         console.log('📊 Mean results found:', recordMeanResults.length);
+        // console.log('Record Show: ', recordMeanResults);
         
         // List available data
         recordMeanResults.forEach(result => {
@@ -198,6 +199,8 @@ export class MasterDataService {
           m.name === "Total Case Depth (Core +50)");
         const cdeMean = recordMeanResults.find((m: any) => 
           m.name === "Hardness Case Depth (CDE@ 513 Hmv)");
+        const cde550CaseMean = recordMeanResults.find((m: any) => 
+          m.name === "Hardness Case Depth (CDE@ 550 Hmv)");
         const compoundLayerMean = recordMeanResults.find((m: any) =>
           m.name === "Compound Layer");
 
@@ -210,7 +213,11 @@ export class MasterDataService {
           s.name === "Total Case Depth (Core +50)"
         );
         const cdeSpec = recordSpecResults.find((s: any) => 
-          s.name === "Hardness Case Depth (CDE@ 513 Hmv)"
+          s.name === "Hardness Case Depth (CDE@ 513 Hmv)" 
+        );
+
+        const cde550CaseSpec = recordSpecResults.find((s: any) => 
+          s.name === "Hardness Case Depth (CDE@ 550 Hmv)" 
         );
 
         const compoundLayerSpec = recordSpecResults.find((s: any) => 
@@ -232,6 +239,9 @@ export class MasterDataService {
         if (cdeMean) {
           console.log(`  - CDE value:`, cdeMean.data_ans?.x);
         }
+        if (cde550CaseMean) {
+          console.log(`  - CDE value:`, cde550CaseMean.data_ans?.x);
+        }
         if (compoundLayerMean) {
           console.log(`  - Compound Layer value:`, compoundLayerMean.dataFromArr);
         }
@@ -245,7 +255,7 @@ export class MasterDataService {
           collected_date: fgEncoded.masterCollectedDate,
           surface_hardness: surfaceHardnessMean?.data_ans || 0,
           compound_layer: compoundLayerMean?.dataFromArr || 0,
-          cde_x: cdeMean?.data_ans?.x || 0,
+          cde_x: cdeMean?.data_ans?.x || cde550CaseMean?.data_ans?.x || 0,
           cdt_x: cdtMean?.data_ans?.x || 0,
           surface_upper_spec: surfaceHardnessSpec?.upper_spec || 0,
           surface_lower_spec: surfaceHardnessSpec?.lower_spec || 0,
@@ -253,9 +263,9 @@ export class MasterDataService {
           compound_layer_upper_spec: compoundLayerSpec?.upper_spec || 0,
           compound_layer_lower_spec: compoundLayerSpec?.lower_spec || 0,
           compound_layer_target: compoundLayerSpec?.target || 0,
-          cde_upper_spec: cdeSpec?.upper_spec || 0,
-          cde_lower_spec: cdeSpec?.lower_spec || 0,
-          cde_target: cdeSpec?.target || 0,
+          cde_upper_spec: cdeSpec?.upper_spec || cde550CaseSpec?.upper_spec || 0,
+          cde_lower_spec: cdeSpec?.lower_spec || cde550CaseSpec?.lower_spec || 0,
+          cde_target: cdeSpec?.target || cde550CaseSpec?.target || 0,
           cdt_upper_spec: cdtSpec?.upper_spec || 0,
           cdt_lower_spec: cdtSpec?.lower_spec || 0,
           cdt_target: record.TARGET_SPEC || 0,
