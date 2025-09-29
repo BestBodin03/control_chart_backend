@@ -496,42 +496,38 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             cdt:             this.summarizeViolations(controlChartSpotsChecked.cdt),
             };
 
-// console.log("Violations Summary:", allViolations);
-
-const cache = furnaceMaterialCacheService.getAll();
-
-// ถ้าอยากเจาะพิมพ์เฉพาะค่า controlLimitViolations
-console.log("Surface Hardness CL Violations:", allViolations.surfaceHardness.controlLimitViolations);
-console.log("Compound Layer CL Violations:", allViolations.compoundLayer.controlLimitViolations);
-console.log("CDE CL Violations:", allViolations.cde.controlLimitViolations);
-console.log("CDT CL Violations:", allViolations.cdt.controlLimitViolations);
-console.log(cache);
-
-
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
 
                 surfaceHardnessViolations: {
-                    beyondControlLimit: allViolations.surfaceHardness.controlLimitViolations,
-                    beyondSpecLimit: allViolations.surfaceHardness.specControlViolations,
+                    beyondControlLimitLower: allViolations.surfaceHardness.controlLimitViolationsLower,
+                    beyondControlLimitUpper: allViolations.surfaceHardness.controlLimitViolationsUpper,
+                    beyondSpecLimitLower: allViolations.surfaceHardness.specControlViolationsLower,
+                    beyondSpecLimitUpper: allViolations.surfaceHardness.specControlViolationsUpper,
                     trend: allViolations.surfaceHardness.trendViolations,
                 },
 
                 compoundLayerViolations: {
-                    beyondControlLimit: allViolations.compoundLayer.controlLimitViolations,
-                    beyondSpecLimit: allViolations.compoundLayer.specControlViolations,
+                    beyondControlLimitLower: allViolations.compoundLayer.controlLimitViolationsLower,
+                    beyondControlLimitUpper: allViolations.compoundLayer.controlLimitViolationsUpper,
+                    beyondSpecLimitLower: allViolations.compoundLayer.specControlViolationsLower,
+                    beyondSpecLimitUpper: allViolations.compoundLayer.specControlViolationsUpper,
                     trend: allViolations.compoundLayer.trendViolations,
                 },
 
                 cdeViolations: {
-                    beyondControlLimit: allViolations.cde.controlLimitViolations,
-                    beyondSpecLimit: allViolations.cde.specControlViolations,
+                    beyondControlLimitLower: allViolations.cde.controlLimitViolationsLower,
+                    beyondControlLimitUpper: allViolations.cde.controlLimitViolationsUpper,
+                    beyondSpecLimitLower: allViolations.cde.specControlViolationsLower,
+                    beyondSpecLimitUpper: allViolations.cde.specControlViolationsUpper,
                     trend: allViolations.cde.trendViolations,
                 },
 
                 cdtViolations: {
-                    beyondControlLimit: allViolations.cdt.controlLimitViolations,
-                    beyondSpecLimit: allViolations.cdt.specControlViolations,
+                    beyondControlLimitLower: allViolations.cdt.controlLimitViolationsLower,
+                    beyondControlLimitUpper: allViolations.cdt.controlLimitViolationsUpper,
+                    beyondSpecLimitLower: allViolations.cdt.specControlViolationsLower,
+                    beyondSpecLimitUpper: allViolations.cdt.specControlViolationsUpper,
                     trend: allViolations.cdt.trendViolations,
                 },
 
@@ -854,21 +850,25 @@ console.log(cache);
     }
 
     private summarizeViolations(points: DataPoint[]) {
-        let controlLimitViolations = 0;
-        let specControlViolations  = 0;
+        let controlLimitViolationsLower = 0;
+        let controlLimitViolationsUpper = 0;
+        let specControlViolationsLower  = 0;
+        let specControlViolationsUpper  = 0;
         let trendViolations        = 0;
 
         for (const p of points) {
-            if (p.isViolatedR1BeyondUCL) controlLimitViolations++;
-            if (p.isViolatedR1BeyondLCL) controlLimitViolations++;
-            if (p.isViolatedR1BeyondUSL) specControlViolations++;
-            if (p.isViolatedR1BeyondLSL) specControlViolations++;
+            if (p.isViolatedR1BeyondUCL) controlLimitViolationsUpper++;
+            if (p.isViolatedR1BeyondLCL) controlLimitViolationsLower++;
+            if (p.isViolatedR1BeyondUSL) specControlViolationsUpper++;
+            if (p.isViolatedR1BeyondLSL) specControlViolationsLower++;
             if (p.isViolatedR3)          trendViolations++;
         }
 
         return {
-            controlLimitViolations,
-            specControlViolations,
+            controlLimitViolationsLower,
+            controlLimitViolationsUpper,
+            specControlViolationsLower,
+            specControlViolationsUpper,
             trendViolations
         };
         }

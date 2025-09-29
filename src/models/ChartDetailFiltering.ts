@@ -67,29 +67,37 @@ export interface MRChartResult {
   numberOfSpots: number;
 
   surfaceHardnessViolations: {
-    beyondControlLimit: number;
-    beyondSpecLimit: number;
+    beyondControlLimitLower: number;
+    beyondControlLimitUpper: number;
+    beyondSpecLimitLower: number;
+    beyondSpecLimitUpper: number;
     trend: number;
 
   }
 
   compoundLayerViolations: {
-    beyondControlLimit: number;
-    beyondSpecLimit: number;
+    beyondControlLimitLower: number;
+    beyondControlLimitUpper: number;
+    beyondSpecLimitLower: number;
+    beyondSpecLimitUpper: number;
     trend: number;
 
   }
 
   cdeViolations: {
-    beyondControlLimit: number;
-    beyondSpecLimit: number;
+    beyondControlLimitLower: number;
+    beyondControlLimitUpper: number;
+    beyondSpecLimitLower: number;
+    beyondSpecLimitUpper: number;
     trend: number;
 
   }
 
   cdtViolations: {
-    beyondControlLimit: number;
-    beyondSpecLimit: number;
+    beyondControlLimitLower: number;
+    beyondControlLimitUpper: number;
+    beyondSpecLimitLower: number;
+    beyondSpecLimitUpper: number;
     trend: number;
 
   }
