@@ -11,7 +11,8 @@ import { FurnaceCodeEncoder } from "../utils/masterDataFgEncoder";
 import { ChartDetailService } from "./chartDetailService";
 import { CustomerProductService } from "./customerProductService";
 import { FurnaceService } from "./furnaceService";
-import { MasterDataServiceHelper } from "./masterDataServiceHelper";
+import { MasterDataServiceHelper } from "./MasterDataServiceHelper";
+// import { MasterDataServiceHelper } from "./masterDataServiceHelper";
 
 dotenv.config({ path: '.env' });
 
@@ -38,6 +39,7 @@ export class MasterDataService {
     const cpData: CustomerProductData = {
       CPNo: record.lot_number || "N/A",
       furnaceId: [], // จะ assign ทีหลัง
+      partName: record.part_name || '-',
       surfaceHardnessUSpec: record.surface_upper_spec || 0,
       surfaceHardnessLSpec: record.surface_lower_spec || 0,
       surfaceHardnessTarget: record.surface_target || 0,

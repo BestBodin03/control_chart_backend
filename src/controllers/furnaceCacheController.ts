@@ -1,3 +1,4 @@
+// controllers/furnaceCache.controller.ts
 import { Request, Response } from "express";
 import { z, ZodError } from "zod";
 import { furnaceMaterialCacheService } from "../services/furnaceMaterialCacheService";
@@ -22,7 +23,7 @@ class FurnaceCacheController {
     try {
       const { furnaceNo, cpNo } = parsed.data;
 
-      // 🔹 ไม่มี param → คืนทั้ง cache
+      // no params → return cache overview
       if (furnaceNo === undefined && cpNo === undefined) {
         res.status(200).json({
           status: "success",
@@ -32,22 +33,32 @@ class FurnaceCacheController {
         return;
       }
 
+      // query by furnaceNo → return furnaceNo + arrays: cpNo[], cpName[]
       if (typeof furnaceNo === "string") {
-        const cpList = furnaceMaterialCacheService.getCpByFurnace(parseInt(furnaceNo));
+        const fn = parseInt(furnaceNo, 10);
+        const cpList = furnaceMaterialCacheService.getCpByFurnace(fn); // string[]
+        // map each cpNo to its name via cache
+        const cpNameList = cpList.map(
+          (cp) => furnaceMaterialCacheService.getCpName(cp) ?? ""
+        );
+
         res.status(200).json({
           status: "success",
           statusCode: 200,
-          data: { furnaceNo, cpNo: cpList },
+          data: { furnaceNo, cpNo: cpList, cpName: cpNameList },
         });
         return;
       }
 
+      // query by cpNo → return cpNo + cpName + furnaces[]
       if (typeof cpNo === "string") {
         const furnaces = furnaceMaterialCacheService.getFurnacesByCp(cpNo);
+        const cpName = furnaceMaterialCacheService.getCpName(cpNo) ?? "";
+
         res.status(200).json({
           status: "success",
           statusCode: 200,
-          data: { cpNo, furnaces },
+          data: { cpNo, cpName, furnaces },
         });
         return;
       }
@@ -55,9 +66,8 @@ class FurnaceCacheController {
       res.status(400).json({
         status: "error",
         statusCode: 400,
-        error: { message: "Provide either furnaceNo or cp" },
+        error: { message: "Provide either furnaceNo or cpNo" },
       });
-      return;
     } catch (e: any) {
       if (res.headersSent) return;
       if (e instanceof ZodError) {

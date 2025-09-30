@@ -4,6 +4,7 @@ import mongoose, { Document, model, Schema, Types } from "mongoose";
 export interface CustomerProduct extends Document {
   CPNo: string;
   furnaceId: Types.ObjectId[];
+  partName: string;
   surfaceHardnessUSpec?: number; // เพิ่ม spec fields
   surfaceHardnessLSpec?: number;
   surfaceHardnessTarget?: number;
@@ -23,6 +24,7 @@ export interface CustomerProduct extends Document {
 export interface CustomerProductData {
   CPNo: string;
   furnaceId: Types.ObjectId[];
+  partName: string;
   surfaceHardnessUSpec?: number;
   surfaceHardnessLSpec?: number;
   surfaceHardnessTarget?: number;
@@ -42,6 +44,7 @@ export interface CustomerProductData {
 const customerProductSchema = new Schema<CustomerProduct>({
   CPNo: { type: String, required: true, unique: true },
   furnaceId: [{ type: Schema.Types.ObjectId, ref: 'Furnace' }],
+  partName: { type: String, required: true},
   surfaceHardnessUSpec: { type: Number, required: false, default: null },
   surfaceHardnessLSpec: { type: Number, required: false, default: null },
   surfaceHardnessTarget: { type: Number, required: false, default: null },
