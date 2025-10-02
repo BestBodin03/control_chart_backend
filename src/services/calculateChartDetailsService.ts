@@ -30,11 +30,11 @@ class CalculateChartDetailsService {
         const cpk = Math.min(cpu, cpl);
 
         return {
-            std: parseFloat(std.toFixed(3)) ?? 0,
-            cpu: parseFloat(cpu.toFixed(3)) ?? 0,
-            cpl: parseFloat(cpl.toFixed(3)) ?? 0,
-            cp: parseFloat(cp.toFixed(3)) ?? 0,
-            cpk: parseFloat(cpk.toFixed(3)) ?? 0
+        std: Number.isFinite(std) ? parseFloat(std.toFixed(3)) : 0,
+        cpu: Number.isFinite(cpu) ? parseFloat(cpu.toFixed(3)) : 0,
+        cpl: Number.isFinite(cpl) ? parseFloat(cpl.toFixed(3)) : 0,
+        cp: Number.isFinite(cp) ? parseFloat(cp.toFixed(3)) : 0,
+        cpk: Number.isFinite(cpk) ? parseFloat(cpk.toFixed(3)) : 0,
         };
     }
 }

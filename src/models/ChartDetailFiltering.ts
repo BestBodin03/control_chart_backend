@@ -38,8 +38,8 @@ export interface ChartDetailsFiltering {
     startDate: string;
     endDate: string;
   }
-  furnaceNo: string;
-  matNo: string;
+  furnaceNo?: string;
+  matNo?: string;
 }
 
 export interface FilteredResult<T> {

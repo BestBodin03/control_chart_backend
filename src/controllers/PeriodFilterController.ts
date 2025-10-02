@@ -5,14 +5,14 @@ export class PeriodFilterController {
 
     async getDynamicFiltering(req: Request, res: Response): Promise<void> {
         try {
-        const { data, total, filters, summary } = await chartDetailService.getFilteredData(req);
-        res.json({
-        status: "success",
-        statusCode: 200,
-        data,
-        total,
-        filters,
-        summary,
+            const { data, total, filters, summary } = await chartDetailService.getFilteredData(req);
+            res.json({
+            status: "success",
+            statusCode: 200,
+            data,
+            total,
+            filters,
+            summary,
         });
         } catch (e: any) {
             res.json({
