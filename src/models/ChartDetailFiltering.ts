@@ -1,5 +1,6 @@
 import { PeriodFilter } from "../utils/dataPartitionwithPeriod";
 import { CustomerProduct } from "./entities/customerProduct";
+import { CapabilityProcess } from "./types/capabilityProcess";
 import { SecondChartSelected } from "./types/controlChart";
 
 export interface DataPoint {
@@ -123,6 +124,11 @@ export interface MRChartResult {
   compoundLayerMRAverage: number;
   cdeMRAverage: number;
   cdtMRAverage: number;
+
+  surfaceHardnessCapabilityProcess: CapabilityProcess;
+  compoundLayerCapabilityProcess: CapabilityProcess;
+  cdeCapabilityProcess: CapabilityProcess;
+  cdtCapabilityProcess: CapabilityProcess;
 
   controlLimitIChart: ControlLimits;
   compoundLayerControlLimitIChart: ControlLimits;

@@ -12,6 +12,7 @@ import { PeriodType } from "../models/enums/periodType";
 import { furnaceMaterialCacheService } from "./furnaceMaterialCacheService";
 import { ChartDetailsFiltering, FilteredResult, MRChartResult, 
     toSpecAttribute, ChartPoints, YAxisRange, DataPoint } from "../models/chartDetailFiltering";
+import { calculateChartDetailsService } from "./calculateChartDetailsService";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {
@@ -496,6 +497,23 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             cdt:             this.summarizeViolations(controlChartSpotsChecked.cdt),
             };
 
+            const surfaceHardnessCpValue = await calculateChartDetailsService.calculateCapability(
+                hardnessValues, specAttribute.surfaceHardnessLowerSpec ?? 0, 
+                specAttribute.surfaceHardnessUpperSpec ?? 0
+            );
+            const compoundLayerCpValue = await calculateChartDetailsService.calculateCapability(
+                compoundLayerValues, specAttribute.compoundLayerLowerSpec ?? 0, 
+                specAttribute.compoundLayerUpperSpec ?? 0
+            );
+            const cdeCpValue = await calculateChartDetailsService.calculateCapability(
+                cdeValues, specAttribute.cdeLowerSpec ?? 0, 
+                specAttribute.cdeUpperSpec ?? 0
+            );
+            const cdtCpValue = await calculateChartDetailsService.calculateCapability(
+                cdtValues, specAttribute.cdtLowerSpec ?? 0, 
+                specAttribute.cdtUpperSpec ?? 0
+            );
+
             const result: MRChartResult = {
                 numberOfSpots: dataForChart.total,
 
@@ -548,6 +566,11 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 compoundLayerMRAverage: Number(compoundLayerMrChartUCL.toFixed(3)),
                 cdeMRAverage: Number(cdeMrAverage.toFixed(3)),
                 cdtMRAverage:Number(cdtMrAverage.toFixed(3)),
+
+                surfaceHardnessCapabilityProcess: surfaceHardnessCpValue,
+                compoundLayerCapabilityProcess: compoundLayerCpValue,
+                cdeCapabilityProcess: cdeCpValue,
+                cdtCapabilityProcess: cdtCpValue,
 
                 controlLimitIChart: {
                     CL: Number(average.toFixed(3)),
