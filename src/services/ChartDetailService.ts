@@ -13,6 +13,7 @@ import { furnaceMaterialCacheService } from "./furnaceMaterialCacheService";
 import { ChartDetailsFiltering, FilteredResult, MRChartResult, 
     toSpecAttribute, ChartPoints, YAxisRange, DataPoint } from "../models/chartDetailFiltering";
 import { calculateChartDetailsService } from "./calculateChartDetailsService";
+import { toDTO, ChartDetailDTO } from "../models/types/chartDetailDto";
 
 // ✅ Chart Detail Service
 export class ChartDetailService {
@@ -42,9 +43,16 @@ export class ChartDetailService {
     return [];
   }
 
-  async getAllChartDetails(): Promise<ChartDetail[]> {
-    return await this.chartDetailRepository.findAll();
-  }
+
+/* 
+   =============================================================
+   =                Chart Detail Filtering                     =
+   =============================================================
+*/
+
+    async getAllChartDetails(): Promise<ChartDetail[]> {
+        return await this.chartDetailRepository.findAll();
+    }
 
     private parseFiltersFromRequest(req: Request): ChartDetailsFiltering | undefined{
         try {
@@ -72,113 +80,163 @@ export class ChartDetailService {
         }
     }
 
-    // ✅ Method สำหรับ Controller เรียกใช้
-    async getFilteredData(req: Request): Promise<FilteredResult<ChartDetail>> {
+    // For Filter Chart Detail
+    async getFilteredData(req: Request): Promise<FilteredResult<ChartDetailDTO>> {
         try {
             const filters = this.parseFiltersFromRequest(req);
+            console.log('Parsed Filters:', filters);
             return await this.handleDynamicFiltering(filters);
         } catch (error) {
             console.error('Error getting filtered data:', error);
             throw error;
         }
     }
+    // For Filter Chart Detail
 
-    async handleDynamicFiltering(filters?: ChartDetailsFiltering): Promise<FilteredResult<ChartDetail> & { 
-        summary: Array<{ furnaceNo: number; matNo: string; partName: string; count: number }> 
-    }> {
-        const allData = await this.chartDetailRepository.findAll();
-        
+    async handleDynamicFiltering(
+        filters?: ChartDetailsFiltering
+        ): Promise<FilteredResult<ChartDetailDTO> & {
+        summary: Array<{ furnaceNo: number; matNo: string; partName: string; count: number }>;
+        }> {
+        // 1) get docs (mongoose documents)
+        const allDocs = await this.chartDetailRepository.findAll(); // ChartDetail[]
+
+        // helper
+        const num = (v?: number | null) => (v ?? 0);
+
+        // 2) no filters → just return all as DTO + summary
         if (!filters) {
-        const summary = Object.values(
-        allData.reduce((acc, item) => {
-            const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
-            acc[key] = acc[key]
-            ? { ...acc[key], count: acc[key].count + 1 }
-            : {
-                furnaceNo: item.chartGeneralDetail.furnaceNo,
-                matNo: item.CPNo,
-                partName: item.chartGeneralDetail.partName,
-                count: 1
-                };
-            return acc;
-        }, {} as Record<string, any>)
-        )
+            const dtoAll: ChartDetailDTO[] = allDocs.map(toDTO);
 
-            summary.sort((a: any, b:any) => b.count - a.count)
+                const summary = Object.values(
+                    dtoAll.reduce((acc, item) => {
+                        const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
+                        acc[key] = acc[key] ? 
+                            { ...acc[key], count: acc[key].count + 1 } : 
+                            { furnaceNo: item.chartGeneralDetail.furnaceNo,
+                            matNo: item.CPNo, partName: item.chartGeneralDetail.partName, count: 1 };
+                        return acc;
+                    }, {} as Record<string, any>)
+                ).sort((a: any, b: any) => b.count - a.count);
 
-            // ).sort((a: any, b: any) => a.furnaceNo - b.furnaceNo || a.matNo.localeCompare(b.matNo));
-            
             return {
-                data: allData,
-                total: allData.length,
-                filters: filters || {} as ChartDetailsFiltering,
-                summary
+            data: [...dtoAll].reverse(),
+            total: dtoAll.length,
+            filters: (filters ?? {}) as ChartDetailsFiltering,
+            summary,
             };
         }
+        // console.log(this.validateApplyFilter('period', filters.period));
 
-        let filteredData = [...allData];
-
-        // Apply filters one by one
+        // 3) apply filters on documents
+        let filteredDocs = [...allDocs];
         Object.entries(filters).forEach(([key, value]) => {
             if (this.validateApplyFilter(key, value)) {
-                filteredData = this.applyFilter(filteredData, key, value);
+            filteredDocs = this.applyFilter(filteredDocs, key, value);
             }
         });
 
-        const summary = Object.values(
-            filteredData.reduce((acc, item) => {
-                const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
-                acc[key] = acc[key] ? 
-                    { ...acc[key], count: acc[key].count + 1 } : 
-                    { furnaceNo: item.chartGeneralDetail.furnaceNo,
-                     matNo: item.CPNo, partName: item.chartGeneralDetail.partName, count: 1 };
-                return acc;
-            }, {} as Record<string, any>)
-        ).sort((a: any, b: any) => b.count - a.count);
-        
+        // 4) compute averages on the filtered set (including zeros)
+        const surfaceHardnessList = filteredDocs.map(d => d.machanicDetail.surfaceHardnessMean);
+        const surfaceHardnessAvg =
+            surfaceHardnessList.reduce((acc, v) => acc + num(v), 0) / (surfaceHardnessList.length || 1);
+
+        const compoundLayerList = filteredDocs.map(d => d.machanicDetail.compoundLayer);
+        const compoundLayerAvg =
+            compoundLayerList.reduce((acc, v) => acc + num(v), 0) / (compoundLayerList.length || 1);
+
+        const cdeList = filteredDocs.map(d => d.machanicDetail.CDE?.CDEX);
+        const cdeAvg =
+            cdeList.reduce((acc, v) => acc + num(v), 0) / (cdeList.length || 1);
+
+        const cdtList = filteredDocs.map(d => d.machanicDetail.CDE?.CDTX);
+        const cdtAvg =
+            cdtList.reduce((acc, v) => acc + num(v), 0) / (cdtList.length || 1);
+
+        const hasFurnace = !!filters.furnaceNo && `${filters.furnaceNo}`.trim() !== '';
+        const hasMat     = !!filters.matNo && `${filters.matNo}`.trim() !== '';
+        const strictMode = hasFurnace || hasMat;
+
+        const eps = 1e-9;
+        const isZero = (n: number) => Math.abs(n) <= eps;
+
+        const shouldDropStrict = (d: ChartDetail) =>
+        (surfaceHardnessAvg > eps && isZero(num(d.machanicDetail.surfaceHardnessMean))) ||
+        (compoundLayerAvg  > eps && isZero(num(d.machanicDetail.compoundLayer))) ||
+        (cdeAvg            > eps && isZero(num(d.machanicDetail.CDE?.CDEX))) ||
+        (cdtAvg            > eps && isZero(num(d.machanicDetail.CDE?.CDTX)));
+
+        const shouldDropLenient = (d: ChartDetail) => {
+        const zSH = surfaceHardnessAvg > eps && isZero(num(d.machanicDetail.surfaceHardnessMean));
+        const zCL = compoundLayerAvg  > eps && isZero(num(d.machanicDetail.compoundLayer));
+        const zCE = cdeAvg            > eps && isZero(num(d.machanicDetail.CDE?.CDEX));
+        const zCT = cdtAvg            > eps && isZero(num(d.machanicDetail.CDE?.CDTX));
+        // กรองทิ้งเฉพาะเคสที่ “ทุกค่าเป็น 0”
+        return zSH && zCL && zCE && zCT;
+        };
+
+        const shouldDrop = strictMode ? shouldDropStrict : shouldDropLenient;
+
+        const keptDocs = filteredDocs.filter(d => !shouldDrop(d));
+
+
+        const filteredDataDTO: ChartDetailDTO[] = keptDocs.map(toDTO);
+
+        // console.log(filteredDataDTO);
+
+                const summary = Object.values(
+                    filteredDataDTO.reduce((acc, item) => {
+                        const key = `${item.chartGeneralDetail.furnaceNo}-${item.CPNo}`;
+                        acc[key] = acc[key] ? 
+                            { ...acc[key], count: acc[key].count + 1 } : 
+                            { furnaceNo: item.chartGeneralDetail.furnaceNo,
+                            matNo: item.CPNo, partName: item.chartGeneralDetail.partName, count: 1 };
+                        return acc;
+                    }, {} as Record<string, any>)
+                ).sort((a: any, b: any) => b.count - a.count);
+
         return {
-            data: filteredData.reverse(),
-            total: filteredData.length,
+            data: [...filteredDataDTO].reverse(),
+            total: filteredDataDTO.length,
             filters,
-            summary
+            summary,
         };
     }
 
-private validateApplyFilter(key: string, value: any): boolean {
-    if (value === undefined || value === null || value === '') {
-        return false;
+    private validateApplyFilter(key: string, value: any): boolean {
+        if (value === undefined || value === null || value === '') {
+            return false;
+        }
+        
+        // Special validation for period
+        if (key === 'period') {
+            return value.startDate && value.endDate && 
+                value.startDate !== undefined && value.endDate !== undefined;
+        }
+        
+        return true;
     }
-    
-    // Special validation for period
-    if (key === 'period') {
-        return value.startDate && value.endDate && 
-               value.startDate !== undefined && value.endDate !== undefined;
-    }
-    
-    return true;
-}
 
-private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): ChartDetail[] {
-    switch (filterKey) {
-        case 'period':
-            return this.filterByPeriod(data, filterValue as PeriodFilter);
-            
-        case 'furnaceNo':
-            return data.filter(item => 
-                item.chartGeneralDetail?.furnaceNo?.toString() === filterValue?.toString()
-            );
-            
-        case 'matNo':
-            return data.filter(item => 
-                item.CPNo === filterValue
-            );
-            
-        default:
-            console.warn(`Unknown filter key: ${filterKey}`);
-            return data;
+    private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): ChartDetail[] {
+        switch (filterKey) {
+            case 'period':
+                return this.filterByPeriod(data, filterValue as PeriodFilter);
+                
+            case 'furnaceNo':
+                return data.filter(item => 
+                    item.chartGeneralDetail?.furnaceNo?.toString() === filterValue?.toString()
+                );
+                
+            case 'matNo':
+                return data.filter(item => 
+                    item.CPNo === filterValue
+                );
+                
+            default:
+                console.warn(`Unknown filter key: ${filterKey}`);
+                return data;
+        }
     }
-}
-
 
     private filterByPeriod(data: ChartDetail[], period: PeriodFilter): ChartDetail[] {
         return data.filter(item => {
@@ -195,11 +253,11 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
                 const endDate = new Date(period.endDate);
                 
                 // ตรวจสอบว่า date ถูกต้อง
-                if (isNaN(itemDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                if (isNaN(itemDate.getTime()) || isNaN(startDate.getTime()) || 
+                isNaN(endDate.getTime())) {
                     return false;
                 }
                 
-                // กรองข้อมูลที่อยู่ในช่วงวันที่ (inclusive)
                 return itemDate >= startDate && itemDate <= endDate;
                 
             } catch (error) {
@@ -217,7 +275,13 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
             throw error;
         }
     }
-    
+
+/* 
+   =============================================================
+   =                Chart Detail Filtering                     =
+   =============================================================
+*/
+
     async calculateIMRChart(req: Request): Promise<MRChartResult> {
         try {
             const spec: CustomerProduct[] = await customerProductService.getAllCustomerProducts();
@@ -797,6 +861,24 @@ private applyFilter(data: ChartDetail[], filterKey: string, filterValue: any): C
         maxYcompoundLayerMrChart: this.pickMax(
         maxCompoundLayerMrSpot,
         compoundLayerMrUCL
+        ),
+
+        // CDE I-Chart
+        maxYcdeControlChart: this.pickMax(
+        maxCdeSpot,
+        cdeIUCL,
+        cdeUSpec
+        ),
+        minYcdeControlChart: this.pickMin(
+        minCdeSpot,
+        cdeILCL,
+        cdeLSpec
+        ),
+
+        // CDE MR-Chart
+        maxYcdeMrChart: this.pickMax(
+        maxCdeMr,
+        cdeMrUCL
         ),
 
         // CDT I-Chart

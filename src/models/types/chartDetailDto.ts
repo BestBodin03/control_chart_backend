@@ -10,11 +10,11 @@ export type ChartDetailDTO = {
     collectedDate: Date | string;
   };
   machanicDetail: {
-    surfaceHardnessMean?: number | null;
-    compoundLayer?: number | null;
+    surfaceHardnessMean: number;
+    compoundLayer: number;
     CDE: {
-      CDEX?: number | null;
-      CDTX?: number | null;
+      CDEX: number;
+      CDTX: number;
     };
   };
 };
@@ -39,4 +39,3 @@ export function toDTO(doc: ChartDetail): ChartDetailDTO {
     },
   };
 }
-
