@@ -290,6 +290,7 @@ export class ChartDetailService {
             // console.log(dataForChart.total);
 
             const dataWithFurnace = dataForChart.data.map(item => ({
+                fgNo: item.FGNo,
                 furnaceNo: item.chartGeneralDetail?.furnaceNo,
                 hardness: item.machanicDetail?.surfaceHardnessMean,
                 compoundLayer: item.machanicDetail?.compoundLayer,
@@ -332,14 +333,19 @@ export class ChartDetailService {
             
             const hardnessValues = validHardnessData.map(item => item.hardness);
             const hardnessDates = validHardnessData.map(item => new Date(item.date));
+            const hardnessFgNo = validCdeData.map(item => item.fgNo);
+
             const compoundLayerValues = validCompoundLayerData.map(item => item.compoundLayer);
             const compoundLayerDates = validCompoundLayerData.map(item => new Date(item.date));
-            // console.log('Hardness values:', hardnessValues.length);
-            // console.log('Hardness values:', hardnessValues);
-            const cdeValues = validCdeData.map(item => item.cde)
+            const compoundLayerFgNo = validCompoundLayerData.map(item => item.fgNo);
+
+            const cdeValues = validCdeData.map(item => item.cde);
             const cdeDates = validCdeData.map(item => new Date(item.date));
-            const cdtValues = validCdtData.map(item => item.cdt).reverse();
+            const cdeFgNo = validCdeData.map(item => item.fgNo)
+
+            const cdtValues = validCdtData.map(item => item.cdt);
             const cdtDates = validCdtData.map(item => new Date(item.date));
+            const cdtFgNo = validCdtData.map(item => item.fgNo);
 
             console.log(compoundLayerValues);
 
@@ -506,10 +512,14 @@ export class ChartDetailService {
             };
 
             // 2) ได้ DataPoint[] ของแต่ละซีรีส์ (เช็ค R1 + R3)
-            const hardnessPoints = this.buildControlChartPoints(hardnessValues, hardnessDates, hardnessCtrl, hardnessSpec, 6);
-            const compoundPoints = this.buildControlChartPoints(compoundLayerValues, compoundLayerDates, compoundCtrl, compoundSpec, 6);
-            const cdePoints      = this.buildControlChartPoints(cdeValues, cdeDates, cdeCtrl, cdeSpec, 6);
-            const cdtPoints      = this.buildControlChartPoints(cdtValues, cdtDates, cdtCtrl, cdtSpec, 6);
+            const hardnessPoints = this.buildControlChartPoints(hardnessValues, hardnessFgNo, 
+                hardnessDates, hardnessCtrl, hardnessSpec, 6);
+            const compoundPoints = this.buildControlChartPoints(compoundLayerValues, compoundLayerFgNo, 
+                compoundLayerDates, compoundCtrl, compoundSpec, 6);
+            const cdePoints      = this.buildControlChartPoints(cdeValues, cdeFgNo, cdeDates, 
+                cdeCtrl, cdeSpec, 6);
+            const cdtPoints      = this.buildControlChartPoints(cdtValues, cdtFgNo, cdtDates, 
+                cdtCtrl, cdtSpec, 6);
 
             // 3) bundle เป็น ChartPoints
             const controlChartSpotsChecked: ChartPoints = {
@@ -999,6 +1009,7 @@ export class ChartDetailService {
 
     private buildControlChartPoints(
     values: number[],
+    fgNo: string[],
     date: Date[],
     limits: { CL: number; UCL: number; LCL: number },
     specs?: Specs,
@@ -1009,6 +1020,7 @@ export class ChartDetailService {
 
         return values.map((v, i) => ({
             value: v,
+            fgNo: fgNo[i],
             collectedDate: date[i],
             isViolatedR1BeyondLCL: r1.beyondLCL[i],
             isViolatedR1BeyondUCL: r1.beyondUCL[i],

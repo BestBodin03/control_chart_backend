@@ -5,6 +5,7 @@ import { SecondChartSelected } from "./types/controlChart";
 
 export interface DataPoint {
   value: number;
+  fgNo?: string;
   furnaceNo?: number;
   matNo?: string;
   collectedDate?: Date;
