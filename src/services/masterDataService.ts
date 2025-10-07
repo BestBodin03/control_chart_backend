@@ -78,7 +78,7 @@ export class MasterDataService {
     });
   }
 
-  async processFromAPI(req: MasterApiRequest): Promise<{
+async processFromAPI(req: MasterApiRequest): Promise<{
     furnaces: Furnace[];
     customerProducts: CustomerProduct[];
     chartDetails: ChartDetail[];
@@ -114,8 +114,8 @@ export class MasterDataService {
         const ops = Array.from(furnaceCpIndex.entries()).map(([furnaceNo, cpSet]) => ({
           updateOne: {
             filter: { furnaceNo },
-            update: { $addToSet: { cpNo: { $each: Array.from(cpSet) } } }, // ✅ กันซ้ำ
-            upsert: true                                                    // เผื่อยังไม่มีเอกสาร
+            update: { $addToSet: { cpNo: { $each: Array.from(cpSet) } } },
+            upsert: true
           }
         }));
         const bulkRes = await FurnaceModel.bulkWrite(ops);
@@ -142,11 +142,16 @@ export class MasterDataService {
       const createdChartDetails = await chartDetailService.bulkCreateUniqueChartDetails(chartDetailDataArray);
       console.log(`✅ Created ${createdChartDetails.length} chart details`);
 
-      console.log('✅ Bulk creation completed');
+      // 7. Bulk update chart details for existing records with changes
+      console.log('=== CHECKING FOR UPDATES ===');
+      const updatedChartDetails = await chartDetailService.bulkUpdateChartDetails(chartDetailDataArray);
+      console.log(`✅ Updated ${updatedChartDetails.length} chart details with changes`);
+
+      console.log('✅ Bulk creation and update completed');
       return { 
         furnaces: createdFurnaces, 
         customerProducts: createdCustomerProducts, 
-        chartDetails: createdChartDetails 
+        chartDetails: [...createdChartDetails, ...updatedChartDetails] // Combine created and updated
       };
     } catch (error) {
       console.error('❌ Processing failed:', error);

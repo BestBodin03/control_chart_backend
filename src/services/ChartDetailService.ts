@@ -43,6 +43,65 @@ export class ChartDetailService {
     return [];
   }
 
+    async bulkUpdateChartDetails(chartDetailDataArray: ChartDetailData[]): Promise<ChartDetail[]> {
+  // Extract unique FG numbers
+    const uniqueFGNos = [...new Set(chartDetailDataArray.map(cd => cd.FGNo))];
+    console.log(`Unique FG numbers to check for updates: ${uniqueFGNos.length}`);
+    
+    // Fetch existing chart details using repository
+    const existingChartDetails = await this.chartDetailRepository.findByFGNos(uniqueFGNos);
+    
+    // Create a map for quick lookup
+    const existingMap = new Map(
+        existingChartDetails.map(cd => [cd.FGNo, cd])
+    );
+    
+    // Filter records that need updating
+    const recordsToUpdate = chartDetailDataArray.filter(incoming => {
+        const existing = existingMap.get(incoming.FGNo);
+        
+        if (!existing) {
+        return false; // Skip if doesn't exist
+        }
+        
+        // Helper function to normalize null/zero values
+        const normalize = (value: any) => {
+        if (value === null || value === undefined || value === 0 || value === '0') {
+            return null;
+        }
+        return value;
+        };
+        
+        // Compare fields
+        const surfaceHardnessMeanChanged = 
+        normalize(existing.machanicDetail?.surfaceHardnessMean) !== 
+        normalize(incoming.machanicDetail?.surfaceHardnessMean);
+        
+        const compoundLayerChanged = 
+        normalize(existing.machanicDetail?.compoundLayer) !== 
+        normalize(incoming.machanicDetail?.compoundLayer);
+        
+        const cdexChanged = 
+        normalize(existing.machanicDetail?.CDE?.CDEX) !== 
+        normalize(incoming.machanicDetail?.CDE?.CDEX);
+        
+        const cdtxChanged = 
+        normalize(existing.machanicDetail?.CDE?.CDTX) !== 
+        normalize(incoming.machanicDetail?.CDE?.CDTX);
+        
+        return surfaceHardnessMeanChanged || compoundLayerChanged || cdexChanged || cdtxChanged;
+    });
+    
+    console.log(`Chart details with changes to update: ${recordsToUpdate.length}`);
+    
+    if (recordsToUpdate.length === 0) {
+        console.log('No updates needed - all records are identical');
+        return [];
+    }
+    
+    // Perform bulk update using repository
+    return await this.chartDetailRepository.bulkUpdate(recordsToUpdate);
+    }
 
 /* 
    =============================================================
