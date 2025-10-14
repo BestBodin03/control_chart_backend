@@ -1,3 +1,4 @@
+import { Console } from "node:console";
 import { DeleteReport } from "../models/deleteType";
 import { FurnaceModel } from "../models/entities/furnace";
 import { fromEntity, toEntity } from "../models/mapper/settingMapper";
@@ -67,14 +68,13 @@ export class SettingService {
         await this.assertSingleActiveSetting(id);
       }
 
-      const toDate = (v: unknown): Date => {
-        if (v instanceof Date) return v;
-        const d = new Date(v as any);
-        if (Number.isNaN(d.getTime())) {
-          throw new Error("Invalid date value");
-        }
-        return d;
-      };
+    const toDate = (v: unknown): Date => {
+      if (v instanceof Date) return v;
+      const s = String(v);
+      const [y, m, d] = s.split('-').map(Number);
+      // ✅ UTC midnight
+      return new Date(Date.UTC(y, m - 1, d));
+    };
 
       // 2) คำนวณช่วงวันที่ให้ชัด (immutable)
       const specificSetting = await Promise.all(
@@ -88,6 +88,9 @@ export class SettingService {
 
           const startDate = toDate(range.startDate);
           const endDate = toDate(range.endDate);
+
+          console.log(startDate, endDate);
+          
 
           return {
             ...s,

@@ -6,7 +6,6 @@ export interface DateRange {
 }
 
 export class TimeConverter {
-  
   static toDateRange(
     periodType: PeriodType, 
     customStart?: Date, 
@@ -14,45 +13,49 @@ export class TimeConverter {
     pastDays?: number
   ): DateRange {
     const now = new Date();
-    
+
+    // helper to make UTC midnight
+    const toUtcMidnight = (d: Date): Date =>
+      new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+
     switch (periodType) {
       case PeriodType.ONE_MONTH:
         return {
-          startDate: new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()),
-          endDate: now
+          startDate: toUtcMidnight(new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())),
+          endDate: toUtcMidnight(now),
         };
 
       case PeriodType.THREE_MONTHS:
         return {
-          startDate: new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()),
-          endDate: now
+          startDate: toUtcMidnight(new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())),
+          endDate: toUtcMidnight(now),
         };
 
       case PeriodType.SIX_MONTHS:
         return {
-          startDate: new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()),
-          endDate: now
+          startDate: toUtcMidnight(new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())),
+          endDate: toUtcMidnight(now),
         };
 
       case PeriodType.ONE_YEAR:
         return {
-          startDate: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()),
-          endDate: now
+          startDate: toUtcMidnight(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())),
+          endDate: toUtcMidnight(now),
         };
 
       case PeriodType.CUSTOM:
         if (!customStart || !customEnd) {
-          throw new Error('Custom period needs start and end dates');
+          throw new Error("Custom period needs start and end dates");
         }
         return {
-          startDate: customStart,
-          endDate: customEnd
+          startDate: toUtcMidnight(customStart),
+          endDate: toUtcMidnight(customEnd),
         };
 
       case PeriodType.LIFETIME:
         return {
-          startDate: new Date('1970-01-01'),
-          endDate: now
+          startDate: toUtcMidnight(new Date("2024-01-01")),
+          endDate: toUtcMidnight(now),
         };
 
       default:
@@ -60,18 +63,24 @@ export class TimeConverter {
     }
   }
 
-  static toMongoQuery(fieldName: string, periodType: PeriodType, customStart?: Date, customEnd?: Date, pastDays?: number): any {
+  static toMongoQuery(
+    fieldName: string,
+    periodType: PeriodType,
+    customStart?: Date,
+    customEnd?: Date,
+    pastDays?: number
+  ): any {
     if (periodType === PeriodType.LIFETIME) {
       return {};
     }
 
     const range = this.toDateRange(periodType, customStart, customEnd, pastDays);
-    
+
     return {
       [fieldName]: {
         $gte: range.startDate,
-        $lte: range.endDate
-      }
+        $lte: range.endDate,
+      },
     };
   }
 }
