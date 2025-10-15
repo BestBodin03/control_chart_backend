@@ -9,7 +9,7 @@ export const settingEntitySchema = z.object({
   isUsed: z.boolean(),
   displayType: z.enum(displayTypeLiterals),
   generalSetting: z.object({
-    chartChangeInterval: z.number().min(10).max(3600),
+    chartChangeInterval: z.number().min(20).max(3600),
     nelsonRule: z.array(
       z.object({
         ruleId: z.number(),
@@ -60,7 +60,7 @@ export const settingDTOSchema = z.object({
   displayType: displayTypeSchema,
 
   generalSetting: z.object({
-    chartChangeInterval: z.number().min(10).max(3600),
+    chartChangeInterval: z.number().min(20).max(3600),
     nelsonRule: z.array(nelsonRuleItem), 
   }),
 

@@ -14,33 +14,37 @@ export class TimeConverter {
   ): DateRange {
     const now = new Date();
 
-    // helper to make UTC midnight
+    // 🔹 helper: set UTC time to 00:00:00
     const toUtcMidnight = (d: Date): Date =>
-      new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0));
+
+    // 🔹 helper: set UTC time to 23:59:59.999
+    const toUtcEndOfDay = (d: Date): Date =>
+      new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999));
 
     switch (periodType) {
       case PeriodType.ONE_MONTH:
         return {
           startDate: toUtcMidnight(new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())),
-          endDate: toUtcMidnight(now),
+          endDate: toUtcEndOfDay(now),
         };
 
       case PeriodType.THREE_MONTHS:
         return {
           startDate: toUtcMidnight(new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())),
-          endDate: toUtcMidnight(now),
+          endDate: toUtcEndOfDay(now),
         };
 
       case PeriodType.SIX_MONTHS:
         return {
           startDate: toUtcMidnight(new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())),
-          endDate: toUtcMidnight(now),
+          endDate: toUtcEndOfDay(now),
         };
 
       case PeriodType.ONE_YEAR:
         return {
           startDate: toUtcMidnight(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())),
-          endDate: toUtcMidnight(now),
+          endDate: toUtcEndOfDay(now),
         };
 
       case PeriodType.CUSTOM:
@@ -49,13 +53,13 @@ export class TimeConverter {
         }
         return {
           startDate: toUtcMidnight(customStart),
-          endDate: toUtcMidnight(customEnd),
+          endDate: toUtcEndOfDay(customEnd),
         };
 
       case PeriodType.LIFETIME:
         return {
           startDate: toUtcMidnight(new Date("2024-01-01")),
-          endDate: toUtcMidnight(now),
+          endDate: toUtcEndOfDay(now),
         };
 
       default:
