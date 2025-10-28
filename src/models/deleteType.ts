@@ -1,0 +1,1 @@
+export type DeleteReport = { deletedCount: number; notFoundIds: string[] };

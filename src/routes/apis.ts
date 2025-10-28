@@ -1,13 +1,22 @@
-import express from "express";
-import { Router } from "express";
-import flow00101TEST from "./api/v1/testApi";
+// apis.ts
+import express, { Router } from "express";
 import { API_V1_PREFIX } from "../config/constans";
-import createDatabase from "./api/v1/createDatabase";
-import getDatabase from "./api/v1/getDatabase";
+import { masterDataRoutes } from "./api/v1/masterDataRoute";
+import { settingRoutes } from "./api/v1/settingRoute";
+import { periodFilterRoutes } from "./api/v1/filterDataWithSettingRoute";
+import { chartDetailRoute } from "./api/v1/chartDetailRoute";
+import { furnaceRoute } from "./api/v1/furnaceRoute";
+import { customerProductRoute } from "./api/v1/customerProductRoute";
+import { furnaceCacheRoutes } from "./api/v1/furnaceCacheRoute";
 
 const router: Router = express.Router();
-router.use(API_V1_PREFIX, flow00101TEST);
-router.use(API_V1_PREFIX, createDatabase);
-router.use(API_V1_PREFIX, getDatabase);
+
+router.use(API_V1_PREFIX, masterDataRoutes);
+router.use(API_V1_PREFIX, settingRoutes);
+router.use(API_V1_PREFIX, periodFilterRoutes);
+router.use(API_V1_PREFIX, chartDetailRoute);
+router.use(API_V1_PREFIX, furnaceRoute);
+router.use(API_V1_PREFIX, customerProductRoute);
+router.use(API_V1_PREFIX, furnaceCacheRoutes); 
 
 export default router;
