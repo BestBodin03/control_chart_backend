@@ -3,7 +3,7 @@ import { MasterDataService } from '../services/masterDataService';
 import { furnaceCacheController } from './furnaceCacheController';
 import { furnaceMaterialCacheService } from '../services/furnaceMaterialCacheService';
 import { MasterApiRequest } from '../models/masterApiResponse';
-import { autoCompleteEndDate } from '../utils/masterDataFgEncoder';
+import { autoCompleteEndDate } from '../utils/masterDataLotEncoder';
 
 export class MasterDataController {
   constructor(

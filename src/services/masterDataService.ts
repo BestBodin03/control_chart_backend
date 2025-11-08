@@ -7,11 +7,11 @@ import { FurnaceData, Furnace, FurnaceModel } from "../models/entities/furnace";
 import { furnaceService, customerProductService, chartDetailService } from "../utils/serviceLocator";
 import dotenv from 'dotenv';
 import { MasterApiResponse, MasterApiRequest } from "../models/masterApiResponse";
-import { FurnaceCodeEncoder } from "../utils/masterDataFgEncoder";
+import { FurnaceCodeEncoder } from "../utils/masterDataLotEncoder";
 import { ChartDetailService } from "./chartDetailService";
 import { CustomerProductService } from "./customerProductService";
 import { FurnaceService } from "./furnaceService";
-import { MasterDataServiceHelper } from "./MasterDataServiceHelper";
+import { MasterDataServiceHelper } from "./masterDataServiceHelper";
 // import { MasterDataServiceHelper } from "./masterDataServiceHelper";
 
 dotenv.config({ path: '.env' });

@@ -9,24 +9,13 @@ class CalculateChartDetailsService {
         if (!dataList || dataList.length === 0) {
             throw new Error('Data list cannot be empty');
         }
-
         // คำนวณค่าเฉลี่ย (Mean)
         const mean = dataList.reduce((sum, val) => sum + val, 0) / dataList.length;
-
-        // คำนวณค่าเบี่ยงเบนมาตรฐาน (Standard Deviation)
         const variance = dataList.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / dataList.length;
         const std = Math.sqrt(variance);
-
-        // คำนวณ CPU (Upper Capability Index)
         const cpu = (upperSpec - mean) / (3 * std);
-
-        // คำนวณ CPL (Lower Capability Index)
         const cpl = (mean - lowerSpec) / (3 * std);
-
-        // คำนวณ CP (Process Capability)
         const cp = (upperSpec - lowerSpec) / (6 * std);
-
-        // คำนวณ CPK (Process Capability Index)
         const cpk = Math.min(cpu, cpl);
 
         return {
