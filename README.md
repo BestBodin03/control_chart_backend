@@ -1,5 +1,5 @@
 # 📈 Manufactoring Quality Control (Back-End)
-#### This project was developed during my internship and supports data-driven processes by visualizing a dashboard for monitoring and controlling heat treatment products. There are five components to the dashboard.
+### This project was developed during my internship and supports data-driven processes by visualizing a dashboard for monitoring and controlling heat treatment products. There are five components to the dashboard.
 1. Control Chart
 2. Violation Summary
 3. Violation Details
@@ -9,16 +9,14 @@
 
 ----
 
-#### Tech Stack
+### Tech Stack
 
 **Front-End**  
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)
 
 **Back-End**  
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-
 ![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)
-
 ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs)
 
 **Database**  
@@ -28,9 +26,8 @@
 
 ----
 
-#### System Architecture
+### System Architecture
 <img src="images\system_architecture.jpg" alt="architecture" width="640"> 
-<br>
 <br>
 
     According to the system architecture, 
@@ -43,17 +40,17 @@
 
 ----
 
-#### Problem
+### Problem
 - Engineers manually create control chart and process capability analyses using Excel, which is very time-consuming.
 - When changing data, like from 1 month to 3 months, or material A to material A-1, you must create it again.
 - Everyone can't access the dashboard because it is paper-based.
 
-#### Solution
+### Solution
 - It mapped and calculated values for control charts and process capability, and identified points that violated the rules.
 - You just only send query parameters (period, furnace No., and material No.) for getting data for visualization.
 - It deploys on a local server; everybody can access it.
 
-#### Impact
+### Impact
 - **Reduce** time to create control chart **from hours to week in just 30 second** and not depend on a number of data
 - It can integrate with QC Report System that use in organization.
 - Support data-driven in organization and Industry 4.0.
